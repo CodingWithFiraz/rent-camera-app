@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/domain/admin_guard.dart';
+import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/admin_providers.dart';
+import '../../features/admin/presentation/product_form_screen.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/auth/presentation/firebase_setup_required_screen.dart';
@@ -19,24 +23,36 @@ import '../widgets/app_error_state.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
 
-/// Router aplikasi beserta route guard autentikasi.
+/// Router aplikasi beserta route guard autentikasi dan admin.
 ///
-/// Redirect dihitung oleh [resolveAuthRedirect] dan router menyegarkan diri
-/// lewat [AuthSessionNotifier] (`refreshListenable`), sehingga perubahan sesi
-/// langsung memindahkan pengguna antara route auth dan route terproteksi.
+/// Redirect dihitung oleh [resolveAuthRedirect] lalu [resolveAdminRedirect], dan
+/// router menyegarkan diri lewat `refreshListenable` berisi [AuthSessionNotifier]
+/// dan [AdminAccessNotifier], sehingga perubahan sesi maupun perubahan claim
+/// admin langsung memindahkan pengguna antara route auth, katalog, dan area
+/// admin.
 final goRouterProvider = Provider<GoRouter>((ref) {
   final bootstrapStatus = ref.watch(firebaseBootstrapProvider);
   final session = ref.watch(authSessionNotifierProvider);
+  final adminAccess = ref.watch(adminAccessNotifierProvider);
 
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
-    refreshListenable: session,
-    redirect: (BuildContext context, GoRouterState state) =>
-        resolveAuthRedirect(
-          location: state.matchedLocation,
-          isFirebaseConfigured: bootstrapStatus.isConfigured,
-          sessionStatus: session.status,
-        ),
+    refreshListenable: Listenable.merge(<Listenable>[session, adminAccess]),
+    redirect: (BuildContext context, GoRouterState state) {
+      final location = state.matchedLocation;
+      final authRedirect = resolveAuthRedirect(
+        location: location,
+        isFirebaseConfigured: bootstrapStatus.isConfigured,
+        sessionStatus: session.status,
+      );
+      if (authRedirect != null) {
+        return authRedirect;
+      }
+      return resolveAdminRedirect(
+        location: location,
+        access: adminAccess.status,
+      );
+    },
     errorBuilder: (BuildContext context, GoRouterState state) =>
         const _RouteNotFoundScreen(),
     routes: <RouteBase>[
@@ -107,6 +123,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'editProfile',
         builder: (BuildContext context, GoRouterState state) =>
             const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.admin,
+        name: 'admin',
+        builder: (BuildContext context, GoRouterState state) =>
+            const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminProductNew,
+        name: 'adminProductNew',
+        builder: (BuildContext context, GoRouterState state) =>
+            const ProductFormScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminProductEdit,
+        name: 'adminProductEdit',
+        builder: (BuildContext context, GoRouterState state) =>
+            ProductFormScreen(productId: state.pathParameters['productId'] ?? ''),
       ),
     ],
   );

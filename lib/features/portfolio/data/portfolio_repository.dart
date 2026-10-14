@@ -1,21 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/repository_error_mapper.dart';
 import '../domain/creative.dart';
 import '../domain/service_rate.dart';
-import 'default_portfolio_data.dart';
 
 /// Akses collection `service_rates` dan `creatives`
 /// (`docs/BLUEPRINT_APLIKASI.md` §6.6 dan §6.7).
 ///
-/// Kedua collection dibaca oleh halaman Portfolio & Services.
-/// Jika collection di Firestore belum diisi atau sedang offline,
-/// repository secara otomatis menyediakan [DefaultPortfolioData] agar
-/// halaman tetap menampilkan data rate card dan kreator yang sudah dirancang.
+/// Halaman Portfolio & Services hanya menampilkan dokumen yang benar-benar ada
+/// di Firestore. Repository ini **tidak** menyediakan data contoh maupun nilai
+/// pengganti: rate final, foto kreator, dan tautan portofolio adalah data milik
+/// pemilik aplikasi (blueprint §1 dan §6.6), sehingga collection yang masih
+/// kosong harus tampil sebagai keadaan "belum dikonfigurasi" — bukan angka,
+/// foto, atau tautan rekaan yang tampak nyata.
+///
+/// Data contoh untuk pengembangan hanya ditulis oleh skrip Admin SDK
+/// `scripts/seed_sample_data.mjs` (dijalankan pemilik di lingkungan tepercaya,
+/// setiap dokumennya ditandai `isSample: true`). Aplikasi Flutter tidak pernah
+/// menulis dokumen contoh: penulisan dari klien akan ditolak Security Rules
+/// karena pengguna biasa bukan admin.
 class PortfolioRepository {
   PortfolioRepository(this._firestore);
 
   final FirebaseFirestore _firestore;
+
+  static const String _entityLabel = 'layanan';
 
   CollectionReference<Map<String, dynamic>> get _serviceRates =>
       _firestore.collection(FirestoreCollections.serviceRates);
@@ -23,130 +33,61 @@ class PortfolioRepository {
   CollectionReference<Map<String, dynamic>> get _creatives =>
       _firestore.collection(FirestoreCollections.creatives);
 
-  /// Stream rate card layanan aktif, terurut `sortOrder`.
+  /// Stream rate card aktif, terurut `sortOrder`.
   ///
-  /// Secara langsung memancarkan [DefaultPortfolioData.serviceRates] sebagai
-  /// data awal, kemudian mendengarkan pembaruan realtime dari Firestore bila ada.
-  Stream<List<ServiceRate>> watchActiveServiceRates() async* {
-    yield DefaultPortfolioData.serviceRates;
-    try {
-      await for (final snapshot in _serviceRates.snapshots()) {
-        final items =
-            _mapServiceRateSnapshot(snapshot)
-                .where((rate) => rate.isActive)
-                .toList()
-              ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-        if (items.isNotEmpty) {
-          yield items;
-        } else {
-          yield DefaultPortfolioData.serviceRates;
-        }
-      }
-    } catch (_) {
-      // Pertahankan data default jika stream Firestore mengalami kendala.
-    }
-  }
+  /// Penyaringan `isActive` dan pengurutan dilakukan di klien supaya tidak
+  /// memerlukan composite index. Collection kosong menghasilkan daftar kosong,
+  /// dan daftar itulah yang membuat halaman menampilkan keadaan belum
+  /// dikonfigurasi.
+  Stream<List<ServiceRate>> watchActiveServiceRates() => guardRepositoryStream(
+    _serviceRates.snapshots().map(_mapServiceRateSnapshot),
+    entityLabel: _entityLabel,
+  ).map(_activeServiceRates);
 
   /// Versi sekali-baca dari [watchActiveServiceRates].
   Future<List<ServiceRate>> fetchActiveServiceRates() async {
     try {
-      final snapshot = await _serviceRates.get();
-      final items =
-          _mapServiceRateSnapshot(snapshot)
-              .where((rate) => rate.isActive)
-              .toList()
-            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-      if (items.isNotEmpty) {
-        return items;
-      }
-      return DefaultPortfolioData.serviceRates;
-    } catch (_) {
-      return DefaultPortfolioData.serviceRates;
+      return _activeServiceRates(
+        _mapServiceRateSnapshot(await _serviceRates.get()),
+      );
+    } catch (error) {
+      throw mapRepositoryError(error, entityLabel: _entityLabel);
     }
   }
 
   /// Stream kreator aktif, terurut `sortOrder`.
-  ///
-  /// Secara langsung memancarkan [DefaultPortfolioData.creatives] sebagai
-  /// data awal, kemudian mendengarkan pembaruan realtime dari Firestore bila ada.
-  Stream<List<Creative>> watchActiveCreatives() async* {
-    yield DefaultPortfolioData.creatives;
-    try {
-      await for (final snapshot in _creatives.snapshots()) {
-        final items =
-            _mapCreativeSnapshot(snapshot)
-                .where((creative) => creative.isActive)
-                .toList()
-              ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-        if (items.isNotEmpty) {
-          yield items;
-        } else {
-          yield DefaultPortfolioData.creatives;
-        }
-      }
-    } catch (_) {
-      // Pertahankan data default jika stream Firestore mengalami kendala.
-    }
-  }
+  Stream<List<Creative>> watchActiveCreatives() => guardRepositoryStream(
+    _creatives.snapshots().map(_mapCreativeSnapshot),
+    entityLabel: _entityLabel,
+  ).map(_activeCreatives);
 
   /// Versi sekali-baca dari [watchActiveCreatives].
   Future<List<Creative>> fetchActiveCreatives() async {
     try {
-      final snapshot = await _creatives.get();
-      final items =
-          _mapCreativeSnapshot(snapshot)
-              .where((creative) => creative.isActive)
-              .toList()
-            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-      if (items.isNotEmpty) {
-        return items;
-      }
-      return DefaultPortfolioData.creatives;
-    } catch (_) {
-      return DefaultPortfolioData.creatives;
+      return _activeCreatives(_mapCreativeSnapshot(await _creatives.get()));
+    } catch (error) {
+      throw mapRepositoryError(error, entityLabel: _entityLabel);
     }
   }
 
-  /// Menuliskan data contoh ke Firestore jika collection masih kosong.
-  /// Bersifat idempotent dan aman dipanggil saat inisialisasi aplikasi.
-  Future<void> seedDefaultDataIfEmpty() async {
-    try {
-      final rateSnapshot = await _serviceRates.limit(1).get();
-      if (rateSnapshot.docs.isEmpty) {
-        for (final rate in DefaultPortfolioData.serviceRates) {
-          await _serviceRates.doc(rate.id).set(<String, dynamic>{
-            ServiceRateFields.title: rate.title,
-            ServiceRateFields.description: rate.description,
-            ServiceRateFields.rateLabel: rate.rateLabel,
-            ServiceRateFields.startingPrice: rate.startingPrice,
-            ServiceRateFields.priceUnit: rate.priceUnit.storageValue,
-            ServiceRateFields.deliverables: rate.deliverables,
-            ServiceRateFields.sortOrder: rate.sortOrder,
-            ServiceRateFields.isActive: rate.isActive,
-            'isSample': true,
-          }, SetOptions(merge: true));
-        }
-      }
+  List<ServiceRate> _activeServiceRates(List<ServiceRate> rates) {
+    final items = rates
+        .where((ServiceRate rate) => rate.isActive)
+        .toList(growable: true)
+      ..sort(
+        (ServiceRate a, ServiceRate b) => a.sortOrder.compareTo(b.sortOrder),
+      );
+    return List<ServiceRate>.unmodifiable(items);
+  }
 
-      final creativeSnapshot = await _creatives.limit(1).get();
-      if (creativeSnapshot.docs.isEmpty) {
-        for (final creative in DefaultPortfolioData.creatives) {
-          await _creatives.doc(creative.id).set(<String, dynamic>{
-            CreativeFields.name: creative.name,
-            CreativeFields.roleTitle: creative.roleTitle,
-            CreativeFields.specialties: creative.specialties,
-            CreativeFields.photoUrl: creative.photoUrl,
-            CreativeFields.portfolioUrl: creative.portfolioUrl,
-            CreativeFields.sortOrder: creative.sortOrder,
-            CreativeFields.isActive: creative.isActive,
-            'isSample': true,
-          }, SetOptions(merge: true));
-        }
-      }
-    } catch (_) {
-      // Best-effort: jika security rules membatasi penulisan klien,
-      // aplikasi tetap menampilkan data default lewat watchActive* tanpa error.
-    }
+  List<Creative> _activeCreatives(List<Creative> creatives) {
+    final items = creatives
+        .where((Creative creative) => creative.isActive)
+        .toList(growable: true)
+      ..sort(
+        (Creative a, Creative b) => a.sortOrder.compareTo(b.sortOrder),
+      );
+    return List<Creative>.unmodifiable(items);
   }
 
   List<ServiceRate> _mapServiceRateSnapshot(

@@ -25,6 +25,18 @@ abstract final class AppRoutes {
   /// Halaman Edit Profil (nama, nomor telepon, foto).
   static const String editProfile = '/profile/edit';
 
+  /// Dashboard admin (`lib/features/admin`).
+  ///
+  /// Hanya dapat dibuka akun dengan custom claim `admin: true`; route guard
+  /// mengalihkan pengguna lain ke katalog (lihat `resolveAdminRedirect`).
+  static const String admin = '/admin';
+
+  /// Form tambah produk pada dashboard admin.
+  static const String adminProductNew = '/admin/products/new';
+
+  /// Pola route edit produk; path nyatanya dibentuk [adminProductEditPath].
+  static const String adminProductEdit = '/admin/products/:productId/edit';
+
   /// Ditampilkan bila Firebase belum dikonfigurasi.
   static const String setupRequired = '/setup-required';
 
@@ -33,4 +45,8 @@ abstract final class AppRoutes {
   /// Nilai di-encode supaya karakter khusus tidak mengubah struktur path.
   static String productDetailPath(String productId) =>
       '/product/${Uri.encodeComponent(productId.trim())}';
+
+  /// Path form edit produk untuk [productId] (document ID `products`).
+  static String adminProductEditPath(String productId) =>
+      '/admin/products/${Uri.encodeComponent(productId.trim())}/edit';
 }

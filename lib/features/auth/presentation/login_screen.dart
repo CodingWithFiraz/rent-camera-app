@@ -130,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: shutterGray, fontSize: 14),
+                    style: TextStyle(color: mutedGray, fontSize: 14),
                   ),
                   const SizedBox(height: 24),
 
@@ -148,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Theme(
                             data: ThemeData.dark().copyWith(
                               colorScheme: const ColorScheme.dark(
-                                primary: studioOrange,
+                                primary: customOrangeButton,
                               ),
                             ),
                             child: AppTextField(
@@ -172,7 +172,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Theme(
                             data: ThemeData.dark().copyWith(
                               colorScheme: const ColorScheme.dark(
-                                primary: studioOrange,
+                                primary: customOrangeButton,
                               ),
                             ),
                             child: AppTextField(
@@ -236,7 +236,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     icon: const Icon(
                       Icons.account_circle_outlined,
                       size: 18,
-                      color: studioOrange,
+                      color: customOrangeButton,
                     ),
                     label: const Text('Masuk dengan Google'),
                   ),
@@ -253,7 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : () => context.go(AppRoutes.forgotPassword),
                         child: const Text(
                           'Lupa kata sandi?',
-                          style: TextStyle(color: studioOrange),
+                          style: TextStyle(color: customOrangeButton),
                         ),
                       ),
                       TextButton(
@@ -262,7 +262,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : () => context.go(AppRoutes.register),
                         child: const Text(
                           'Buat akun',
-                          style: TextStyle(color: studioOrange),
+                          style: TextStyle(color: customOrangeButton),
                         ),
                       ),
                     ],

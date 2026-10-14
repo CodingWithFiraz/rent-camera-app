@@ -15,8 +15,10 @@ Isinya tidak boleh dianggap sudah selesai: periksa bagian "Status saat ini" lebi
 | Provider Email/Password & Google | Email/Password bekerja pada uji manual web; Google belum diuji | `flutter run -d chrome` membentuk sesi `signedIn` (Email/Password); Google butuh `GOOGLE_SERVER_CLIENT_ID` + SHA terdaftar |
 | SHA-1/SHA-256 Android | Belum diverifikasi | — |
 | `firebase/storage.rules` | **Ada** (dibuat Fase 5), **belum dideploy** | `firebase.json` → `firebase/storage.rules`; `profiles/{uid}/**` hanya pemilik UID, `products/**`+`banners/**`+`creatives/**` hanya admin, wajib `image/*` ≤ 5 MB |
-| `firebase/firestore.rules` / `firestore.indexes.json` | Belum ada | dikerjakan pada fase model/rules; rules Firestore **wajib** memuat blok `users/{uid}/cart_items` (keranjang Fase 4, hanya pemilik UID) sebelum penulisan keranjang dapat diuji runtime |
+| `firebase/firestore.rules` / `firestore.indexes.json` | `firestore.rules` **Ada** (dibuat Fase 6), **belum dideploy**; `firestore.indexes.json` belum ada | rules memuat `products/**` hanya-tulis admin (baca untuk pengguna login), `users/{uid}` hanya pemilik UID tanpa field otoritas, dan `users/{uid}/cart_items/**` hanya pemilik UID dengan `quantity` integer 1–999. Filter katalog/dashboard dikerjakan di klien sehingga composite index belum diperlukan |
 | `scripts/seed_sample_data.mjs` (Fase 5) | Ada, **belum dijalankan** | `node scripts/seed_sample_data.mjs --dry-run` lulus tanpa kredensial; `firebase-admin` belum dipasang sehingga penulisan dokumen belum dijalankan |
+| `scripts/grant_admin.mjs` (Fase 6) | **Ada**, belum dijalankan pada akun nyata | `node scripts/grant_admin.mjs --dry-run` (dengan `--uid=`/`--email=`) mencetak rencana tanpa menyentuh Firebase; `--revoke` dan penolakan target/argumen yang tidak lengkap juga terverifikasi. `firebase-admin` belum dipasang dan email admin pemilik belum ada |
+| Claim `{ admin: true }` pada akun admin nyata | **Belum ada** | tanpa claim, entri Dashboard admin tidak muncul di drawer katalog, route `/admin` dialihkan ke katalog, dan rules menolak penulisan produk (lihat §4c) |
 | `--dart-define` nilai project | Belum diisi | lihat §3 |
 | `--dart-define=WHATSAPP_NUMBER` | **Belum diisi** (tidak ada nilai default/contoh) | selama kosong, tombol "Checkout via WhatsApp" nonaktif dan UI menjelaskan nomor belum dikonfigurasi (Fase 4) |
 | Login end-to-end | Sebagian | sesi Auth nyata terbentuk di web; penulisan `users/{uid}`, Google Sign-In, dan reset kata sandi belum diverifikasi |
@@ -138,20 +140,27 @@ divalidasi Firebase Authentication, dan role admin hanya berasal dari custom cla
 
 ## 4. Admin dan security rules
 
-- Skrip pemberian custom claim (`scripts/grant_admin.mjs`, Firebase Admin SDK)
-  **belum dibuat**; itu bagian dari fase dashboard admin. Skrip seperti itu hanya
-  boleh dijalankan di lingkungan tepercaya dan tidak dari aplikasi Flutter.
+- Skrip pemberian custom claim `scripts/grant_admin.mjs` (Firebase Admin SDK)
+  **sudah ada** (Fase 6) dan hanya dijalankan dari lingkungan tepercaya, tidak pernah
+  dari aplikasi Flutter. Pemakaiannya ada di §4c.
 - `firebase/storage.rules` **sudah ada** (dibuat pada Fase 5) dan `firebase.json`
   menunjuk berkas itu, tetapi **belum dideploy** dan bucket Storage belum dipastikan
-  aktif, sehingga unggah foto profil belum dapat diverifikasi runtime. Isinya:
-  `products/**`, `banners/**`, dan `creatives/**` hanya dapat ditulis admin
-  (`request.auth.token.admin == true`); `profiles/{uid}/**` hanya dapat ditulis
-  pemilik UID itu sendiri; setiap tulisan wajib `image/*` dan ≤ 5 MB; semua path lain
-  ditolak. Deploy dengan `firebase deploy --only storage`.
-- `firebase/firestore.rules` **belum ada** dan belum dideploy. Sampai rules dibuat,
-  dokumen `users/{uid}` hasil register/login dapat gagal ditulis bila project memakai
-  mode produksi (default deny). Aplikasi akan menampilkan pesan peringatan yang jelas
-  (bukan "sukses" palsu) pada kondisi itu.
+  aktif, sehingga unggah foto profil **dan foto produk** belum dapat diverifikasi
+  runtime. Isinya: `products/{productId}/**`, `banners/**`, dan `creatives/**` hanya
+  dapat ditulis admin (`request.auth.token.admin == true`); `profiles/{uid}/**` hanya
+  dapat ditulis pemilik UID itu sendiri; setiap tulisan wajib `image/*` dan ≤ 5 MB;
+  semua path lain ditolak. Deploy dengan `firebase deploy --only storage`.
+- `firebase/firestore.rules` **sudah ada** (dibuat Fase 6) dan `firebase.json` menunjuk
+  berkas itu, tetapi **belum dideploy**. Isinya: `products/**`, `categories/**`,
+  `banners/**`, `service_rates/**`, dan `creatives/**` hanya dapat ditulis admin
+  (`request.auth.token.admin == true`) dan dibaca pengguna yang login; `users/{uid}`
+  hanya pemilik UID dan tanpa field otoritas (`role`/`admin`/`isAdmin`/`claims`);
+  `users/{uid}/cart_items/**` hanya pemilik UID dengan `quantity` integer 1–999; tipe
+  field produk/profil/keranjang divalidasi; seluruh path lain default-deny. Deploy dengan
+  `firebase deploy --only firestore:rules`. Sampai rules dideploy, dokumen `users/{uid}`
+  hasil register/login (dan penulisan produk/keranjang) dapat gagal ditulis bila project
+  memakai mode produksi (default deny). Aplikasi akan menampilkan pesan peringatan yang
+  jelas (bukan "sukses" palsu) pada kondisi itu.
 - Alasan konkret mengapa rules wajib sebelum uji runtime keranjang: Fase 4 menyimpan
   keranjang pada `users/{uid}/cart_items/{productId}` (satu dokumen per produk).
   Rules harus (a) mengizinkan baca/tulis **hanya** untuk pemilik UID
@@ -188,16 +197,70 @@ Isi yang ditulis (idempotent, aman dijalankan berulang):
 Jangan commit service-account JSON; pola berkas itu sudah masuk `.gitignore`
 (`scripts/service-account*.json`).
 
+## 4c. Alur dashboard admin (Fase 6)
+
+Tiga langkah berikut wajib dilakukan pemilik pada project Firebase nyata sebelum
+dashboard admin dapat dipakai. Ketiganya butuh akun/kredensial pemilik, jadi **belum**
+dijalankan dan belum dapat diverifikasi runtime dari task ini.
+
+1. **Beri claim admin** pada akun Firebase Authentication pemilik (jangan pada akun biasa):
+
+   ```bash
+   npm --prefix scripts install        # memasang firebase-admin (sekali)
+   node scripts/grant_admin.mjs --dry-run --email=<email-admin>   # cek rencana, tanpa kredensial
+   node scripts/grant_admin.mjs --email=<email-admin> --service-account=<path-service-account.json>
+   # atau: GOOGLE_APPLICATION_CREDENTIALS=<path> node scripts/grant_admin.mjs --uid=<uid-akun-admin>
+   # mencabut: node scripts/grant_admin.mjs --uid=<uid-akun-admin> --revoke
+   ```
+
+   Skrip mempertahankan claim lain pada akun itu dan hanya mengubah field `admin`, lalu
+   membaca ulang akun dari Firebase untuk memverifikasi hasilnya (bukan mengasumsikan
+   berhasil). Skrip ini **tidak** memakai password apa pun; alias login `admin` di
+   aplikasi hanya memetakan nama pengguna ke email admin (`ADMIN_EMAIL`, §3) dan password
+   tetap divalidasi Firebase Authentication.
+
+2. **Deploy rules** — tanpa langkah ini penulisan produk, keranjang, dan foto tetap
+   ditolak backend:
+
+   ```bash
+   firebase deploy --only firestore:rules,storage
+   ```
+
+3. **Login ulang di aplikasi.** Claim dibaca dengan `forceRefresh: true`, tetapi token
+   lama dapat masih tersimpan sampai login ulang, sehingga entri "Dashboard admin" pada
+   drawer katalog baru muncul setelah keluar-masuk akun sekali. Bila entri itu tidak
+   muncul: periksa bahwa claim benar-benar tersimpan (skrip mencetak hasil verifikasi),
+   rules sudah dideploy, dan akun yang dipakai memang akun yang diberi claim.
+
+Isi dashboard (hanya CRUD produk, sesuai lingkup MVP): daftar seluruh produk termasuk
+arsip dengan pencarian dan filter status yang dikerjakan di klien (tanpa composite
+index), ringkasan jumlah produk nyata, form tambah/edit (nama, brand, deskripsi,
+kategori dari `categories`, harga integer Rupiah + satuan periode eksplisit, stok, dan
+beberapa foto), serta arsipkan/pulihkan dengan konfirmasi. Foto disimpan pada
+`products/{productId}/**` dan diunggah **lebih dulu**: bila unggahan gagal, dokumen
+produk tidak disentuh sama sekali sehingga foto lama tetap tampil. Arsip hanya mengubah
+`isActive` — berkas foto tidak dihapus, sehingga pemulihan mengembalikan produk apa
+adanya. Pengelolaan kategori, banner, rate card, dan kreator **tidak** termasuk Fase 6
+(lihat `IMPLEMENTATION_PLAN.md` §5).
+
 ## 5. Verifikasi yang bisa dijalankan sekarang
 
 ```bash
 dart format lib test     # dijalankan pada Fase 4: 115 file diperiksa, 4 diubah
-flutter analyze          # No issues found! (Fase 5)
-flutter test             # All tests passed! (273 test)
-flutter test test/core test/features/portfolio test/features/profile
-                         # All tests passed! (139 test, fokus Fase 5)
+dart format <file yang diubah>  # Fase 6: 23 file diperiksa pada pemeriksaan terakhir,
+                         # tanpa sisa perubahan format
+flutter analyze          # Fase 6: tanpa error/warning baru; 2 info
+                         # `deprecated_member_use` (`withOpacity` di login_screen.dart
+                         # dan catalog_screen.dart) sudah ada sebelum Fase 6
+flutter test             # Fase 6: All tests passed! (318 test)
+flutter test test/features/admin test/app_auth_routing_test.dart test/features/catalog/catalog_screen_test.dart
+                         # Fase 6: All tests passed! (51 test)
 node scripts/seed_sample_data.mjs --dry-run   # mencetak 4 rate card + 2 kreator,
                          # tidak menulis dokumen dan tidak butuh kredensial
+node scripts/grant_admin.mjs --dry-run --email=<email-admin>
+                         # Fase 6: mencetak rencana pemberian claim tanpa menyentuh
+                         # Firebase; `--uid=…`, `--revoke`, dan penolakan target yang
+                         # tidak lengkap juga diperiksa
 flutter run -d chrome    # dijalankan: melewati `main()`, berhenti di #/login; uji
                          # manual di halaman yang sama berlanjut ke #/register
                          # lalu #/catalog → bootstrap web memakai bagian `web`
@@ -229,7 +292,9 @@ error, keputusan route guard, resolusi alias login, pemantauan sesi auth, form
 login/register, kontrak bootstrap Firebase (kode diagnostik + sumber konfigurasi),
 alur bootstrap → login → katalog memakai stream sesi palsu, serta (Fase 5) halaman
 Portofolio & Layanan, pemetaan error Storage, validasi berkas gambar, dan alur
-Edit Profil termasuk kegagalan unggah/penulisan.
+Edit Profil termasuk kegagalan unggah/penulisan, serta (Fase 6) keputusan akses admin
+yang fail closed, validasi draft produk, pemfilteran/ringkasan daftar produk admin, dan
+penyusunan provider akses admin di luar Firebase (termasuk saat `FirebaseAuth` belum siap).
 
 Yang **belum** diverifikasi (butuh kredensial/uji manual di project Firebase):
 
@@ -240,19 +305,29 @@ Yang **belum** diverifikasi (butuh kredensial/uji manual di project Firebase):
   yang baru terbukti adalah perilakunya di test: berkas > 5 MB / bukan gambar ditolak
   sebelum diunggah, dan kegagalan unggah tidak mengubah `photoUrl` lama;
 - **pembukaan tautan portofolio kreator** pada perangkat (butuh `portfolioUrl` asli);
-- aturan Firestore/Storage (Storage Rules baru dibuat, **belum** dideploy), termasuk blok
-  `users/{uid}/cart_items` yang menentukan apakah keranjang dapat ditulis;
+- aturan Firestore/Storage (kedua berkas rules sudah ada — `firebase/firestore.rules` Fase 6
+  dan `firebase/storage.rules` Fase 5 — tetapi **belum** dideploy), termasuk blok
+  `users/{uid}/cart_items` yang menentukan apakah keranjang dapat ditulis dan blok
+  `products/**` yang menentukan apakah admin benar-benar dapat menyimpan produk;
 - penulisan/penghapusan `users/{uid}/cart_items` beserta perilaku realtime-nya;
 - checkout WhatsApp dengan nomor tujuan nyata (memerlukan `WHATSAPP_NUMBER`, §3) dan
   pembukaan tautan `wa.me` pada perangkat/emulator;
-- uji manual halaman keranjang di emulator/perangkat (Katalog → Detail → Sewa → Keranjang).
+- uji manual halaman keranjang di emulator/perangkat (Katalog → Detail → Sewa → Keranjang);
+- **alur admin runtime (Fase 6):** pemberian claim `{admin: true}` pada akun nyata, deploy
+  rules, lalu tambah/edit/arsipkan produk dari dashboard admin beserta unggahan foto asli
+  ke Storage dan pemeriksaan bahwa katalog realtime ikut berubah tanpa restart;
+- penolakan penulisan produk untuk akun non-admin pada project nyata: di aplikasi baru
+  terbukti lewat keputusan claim (test), sedangkan aturan backend baru terbukti setelah
+  `firebase/firestore.rules` dideploy;
+- tampilan dashboard admin dengan data nyata (saat ini belum ada produk/foto milik pemilik,
+  sehingga yang tampil adalah keadaan kosong apa adanya).
 
 ## 6. Aset dan keputusan yang masih ditunggu pemilik
 
 Daftar lengkap ada di `IMPLEMENTATION_PLAN.md` §3. Yang paling dekat dengan fase ini:
 
 1. Nama/brand aplikasi final (`APP_NAME`).
-2. Email admin yang dikontrol pemilik (`ADMIN_EMAIL`) dan metode pemberian claim.
+2. Email admin yang dikontrol pemilik (`ADMIN_EMAIL`) beserta akun Firebase-nya. Metode pemberian claim **sudah tersedia** (`scripts/grant_admin.mjs`, lihat §4c), tetapi claim `{admin: true}` belum diberikan pada akun nyata mana pun karena email tersebut masih kosong.
 3. Provider login yang diaktifkan (Email/Password, Google) di Firebase Console + SHA-1/SHA-256 Android. Project Firebase dan hasil `flutterfire configure` sudah selesai (lihat §0).
 4. Keputusan `applicationId` Android (unik atau tetap `com.example.rent_camera_app`).
 5. Nomor WhatsApp tujuan final (`WHATSAPP_NUMBER`) — selama kosong, checkout keranjang tetap nonaktif (Fase 4).
@@ -271,4 +346,8 @@ Daftar lengkap ada di `IMPLEMENTATION_PLAN.md` §3. Yang paling dekat dengan fas
 | Tombol "Checkout via WhatsApp" nonaktif dan menyebut nomor belum dikonfigurasi | jalankan aplikasi dengan `--dart-define=WHATSAPP_NUMBER=<kode-negara><nomor>` (§3) setelah pemilik menentukan nomor final (`IMPLEMENTATION_PLAN.md` blocker #2). Aplikasi sengaja tanpa nomor default |
 | Penulisan/hapus item keranjang gagal dengan `permission-denied` | pastikan `firebase/firestore.rules` sudah dibuat dan dideploy dengan blok `users/{uid}/cart_items` untuk pemilik UID (§4) |
 | Item keranjang tampak "berhasil ditambahkan" tetapi tidak muncul | periksa apakah sesi login valid pada UID yang sama (keranjang dibatasi UID) dan apakah rules mengizinkan baca untuk UID tersebut; aplikasi hanya menampilkan sukses bila penulisan Firestore benar-benar selesai |
+| Entri "Dashboard admin" tidak muncul di drawer katalog | pastikan akun punya claim `{admin: true}` (`node scripts/grant_admin.mjs --uid=<uid>`, §4c), rules sudah dideploy, lalu **login ulang** (claim dibaca dengan `forceRefresh: true`) |
+| Route `/admin` selalu dialihkan ke katalog | sama seperti baris di atas: claim belum terbaca atau bukan `true`. Route guard hanya UI; backend tetap menolak penulisan tanpa claim |
+| Penulisan produk gagal `permission-denied` atau foto produk gagal diunggah | jalankan `firebase deploy --only firestore:rules,storage`, lalu pastikan bucket Storage aktif dan berkas berupa `image/*` ≤ 5 MB |
+| Dashboard admin menampilkan daftar kosong | itu keadaan nyata ketika collection `products` belum diisi; tambahkan produk lewat form admin (Fase 6). Aplikasi tidak menampilkan data contoh palsu |
 

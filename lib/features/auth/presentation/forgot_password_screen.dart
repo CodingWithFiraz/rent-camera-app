@@ -6,8 +6,10 @@ import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_form_banner.dart';
+import '../../../core/widgets/app_primary_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import 'auth_controller.dart';
+import 'widgets/auth_form_layout.dart';
 
 /// Layar lupa kata sandi: mengirim email reset melalui Firebase Auth.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -50,12 +52,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Definisi Warna
-    const Color limeGreenBox = Color(0xFFBCEE46);
-    const Color charcoalText = Color(0xFF1E1E1E);
-    const Color mutedGray = Color(0xFF4A4A4A);
-    const Color customOrangeButton = Color.fromARGB(255, 255, 94, 0);
-
     final authState = ref.watch(authControllerProvider);
     final isSubmitting = authState.isSubmitting;
     final errorMessage = authState.errorMessage;
@@ -78,12 +74,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ],
         Form(
           key: _formKey,
-                    child: Theme(
-                      data: ThemeData.light().copyWith(
-                        colorScheme: const ColorScheme.light(
-                          primary: customOrangeButton,
-                        ),
-                      ),
           child: AppTextField(
             controller: _emailController,
             label: 'Email',

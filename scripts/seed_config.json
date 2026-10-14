@@ -1,99 +1,57 @@
 {
-  "_catatan": "Konfigurasi seed Fase 5. Data rate card dan kreator sesuai blueprint §6.6 dan §6.7.",
+  "_catatan": "Konfigurasi seed data contoh (blueprint §6.6 dan §6.7). Isi berkas ini ADALAH DATA CONTOH, bukan data produksi: label rate memakai 'CONTOH RATE — BELUM FINAL' (default skrip), sedangkan harga final, deliverables, foto kreator, dan tautan portofolio sengaja dikosongkan sampai pemilik mengisinya. Lihat scripts/seed_sample_data.mjs.",
+  "_diisi_pemilik": [
+    "rateLabel: ganti dengan label final (mis. 'Mulai dari') setelah harga disepakati.",
+    "startingPrice: integer Rupiah; priceUnit: 'per_day' atau 'per_session'.",
+    "deliverables: daftar keluaran pekerjaan yang benar-benar dijanjikan.",
+    "creatives[].name, roleTitle, specialties: data kreator yang sebenarnya.",
+    "creatives[].photoUrl dan creatives[].portfolioUrl: URL milik kreator (http/https).",
+    "Set isActive: false bila layanan/kreator tidak dipakai, lalu hapus dokumen ber-penanda isSample setelah data asli siap."
+  ],
   "serviceRates": [
     {
       "id": "commercial_social_media_video",
       "title": "Commercial / Social Media Video",
-      "description": "Produksi video komersial dan konten media sosial berkualitas tinggi untuk branding dan promosi produk.",
-      "rateLabel": "Mulai dari",
-      "startingPrice": 1500000,
-      "priceUnit": "per_session",
-      "deliverables": [
-        "Konsep & storyboard kreatif",
-        "Shooting video Full HD / 4K",
-        "Editing, color grading & audio mixing",
-        "Format media sosial (Reels/TikTok/YouTube)"
-      ],
+      "description": "Produksi video komersial dan konten media sosial untuk branding dan promosi produk.",
       "sortOrder": 1,
       "isActive": true
     },
     {
       "id": "video_editing_post_production",
       "title": "Video Editing / Post-production",
-      "description": "Penyuntingan dan pasca-produksi video profesional untuk berbagai kebutuhan materi visual.",
-      "rateLabel": "Mulai dari",
-      "startingPrice": 500000,
-      "priceUnit": "per_session",
-      "deliverables": [
-        "Cutting & sequencing footage",
-        "Motion graphics & title animation",
-        "Color grading & audio sweetening",
-        "Export master kualitas tinggi (FHD/4K)"
-      ],
+      "description": "Penyuntingan dan pasca-produksi video untuk berbagai kebutuhan materi visual.",
       "sortOrder": 2,
       "isActive": true
     },
     {
       "id": "event_project_documentation",
       "title": "Event & Project Documentation",
-      "description": "Dokumentasi menyeluruh untuk event, peluncuran proyek, seminar, konser, atau gathering.",
-      "rateLabel": "Mulai dari",
-      "startingPrice": 2000000,
-      "priceUnit": "per_session",
-      "deliverables": [
-        "Liputan foto & video sepanjang acara",
-        "Highlight video sinematik (1–3 menit)",
-        "Foto dokumentasi terkurasi & diedit",
-        "Penyimpanan cloud untuk seluruh file"
-      ],
+      "description": "Dokumentasi event, peluncuran proyek, seminar, konser, atau gathering.",
       "sortOrder": 3,
       "isActive": true
     },
     {
       "id": "commercial_portrait_photography",
       "title": "Commercial & Portrait Photography",
-      "description": "Fotografi komersial, foto produk, katalog busana, dan foto profil profesional / personal portrait.",
-      "rateLabel": "Mulai dari",
-      "startingPrice": 750000,
-      "priceUnit": "per_session",
-      "deliverables": [
-        "Sesi foto studio atau outdoor",
-        "Pencahayaan & lighting setup profesional",
-        "15–30 foto resolusi tinggi hasil retouching",
-        "File master siap cetak & media digital"
-      ],
+      "description": "Fotografi komersial, foto produk, katalog busana, dan foto profil profesional.",
       "sortOrder": 4,
       "isActive": true
     }
   ],
   "creatives": [
     {
-      "id": "ipan_ramadhan",
-      "name": "Ipan Ramadhan",
-      "roleTitle": "Videographer & Video Editor",
-      "specialties": [
-        "Commercial Video",
-        "Video Editing",
-        "Color Grading",
-        "Motion Graphics"
-      ],
-      "photoUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-      "portfolioUrl": "https://instagram.com/ipanramadhan",
+      "id": "kreator_1",
+      "name": "Nama kreator pertama (contoh)",
+      "roleTitle": "Videographer & Video Editor (data contoh)",
+      "specialties": [],
       "sortOrder": 1,
       "isActive": true
     },
     {
-      "id": "firas_fadly_a",
-      "name": "Firas Fadly A.",
-      "roleTitle": "Photographer & Visual Content",
-      "specialties": [
-        "Commercial Photography",
-        "Portrait",
-        "Event Documentation",
-        "Color Retouching"
-      ],
-      "photoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-      "portfolioUrl": "https://instagram.com/firasfadly",
+      "id": "kreator_2",
+      "name": "Nama kreator kedua (contoh)",
+      "roleTitle": "Photographer & Visual Content (data contoh)",
+      "specialties": [],
       "sortOrder": 2,
       "isActive": true
     }

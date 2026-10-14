@@ -1,0 +1,147 @@
+rules_version = '2';
+
+// Firestore Security Rules Rent Camera App — blueprint §9, §10, §12, dan §13.
+//
+// Ringkasan izin:
+// - `products/**`, `categories/**`, `banners/**`, `service_rates/**`, dan
+//   `creatives/**`: dibaca pengguna yang login, **hanya admin** yang boleh
+//   menulis. Admin dibuktikan lewat custom claim `{ admin: true }` dari Firebase
+//   Auth (`scripts/grant_admin.mjs`), bukan lewat dokumen Firestore.
+// - `users/{uid}`: hanya pemilik UID. Dokumen profil tidak boleh memuat field
+//   otoritas (`role`, `admin`, `isAdmin`, `claims`) — blueprint §6.3.
+// - `users/{uid}/cart_items/**`: hanya pemilik UID, dengan quantity integer
+//   1..999 agar sejalan dengan `CartItem.maxQuantity` di aplikasi.
+// - Tipe field yang ditulis aplikasi divalidasi, sehingga dokumen rusak tidak
+//   dapat dibuat lewat klien.
+// - Semua path lain default-deny (blok terakhir).
+//
+// Catatan: route guard di aplikasi bukan pengamanan. Rules inilah penentu akhir
+// izin tulis dan harus dideploy (`firebase deploy --only firestore:rules`) agar
+// berlaku pada project Firebase.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Field otoritas tidak pernah boleh ditulis klien: role admin hanya berasal
+    // dari custom claim Firebase Auth.
+    function hasNoAuthorityFields() {
+      return !request.resource.data
+        .keys()
+        .hasAny(['role', 'admin', 'isAdmin', 'claims']);
+    }
+
+    // Teks dengan batas panjang yang wajar untuk deskripsi/URL.
+    function isText(value) {
+      return value is string && value.size() <= 600;
+    }
+
+    function isNonNegativeInt(value) {
+      return value is int && value >= 0;
+    }
+
+    function profileFieldTypesOk() {
+      return isText(request.resource.data.get('displayName', ''))
+        && isText(request.resource.data.get('email', ''))
+        && isText(request.resource.data.get('phoneNumber', ''))
+        && isText(request.resource.data.get('photoUrl', ''));
+    }
+
+    function cartItemTypesOk() {
+      return isText(request.resource.data.get('productNameSnapshot', ''))
+        && isNonNegativeInt(request.resource.data.get('unitPriceSnapshot', 0))
+        && request.resource.data.get('quantity', 0) is int
+        && request.resource.data.get('quantity', 0) >= 1
+        && request.resource.data.get('quantity', 0) <= 999;
+    }
+
+    // Dokumen produk wajib lengkap: katalog membaca field-field ini langsung.
+    function productTypesOk() {
+      return isText(request.resource.data.get('name', ''))
+        && isText(request.resource.data.get('brand', ''))
+        && isText(request.resource.data.get('categoryId', ''))
+        && isNonNegativeInt(request.resource.data.get('price', 0))
+        && isNonNegativeInt(request.resource.data.get('stockQuantity', 0))
+        && request.resource.data.get('isActive', true) is bool;
+    }
+
+    function productRequiredOnCreate() {
+      return request.resource.data
+          .keys()
+          .hasAll([
+            'name',
+            'brand',
+            'categoryId',
+            'price',
+            'stockQuantity',
+            'isActive'
+          ])
+        && request.resource.data.name.size() > 0
+        && request.resource.data.brand.size() > 0
+        && request.resource.data.categoryId.size() > 0;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update:
+        if isOwner(uid) && hasNoAuthorityFields() && profileFieldTypesOk();
+      allow delete: if isOwner(uid);
+
+      match /cart_items/{productId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && cartItemTypesOk();
+      }
+    }
+
+    match /products/{productId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() && productTypesOk() && productRequiredOnCreate();
+      // `update` mencakup arsip/pulihkan yang hanya mengirim `isActive`.
+      allow update: if isAdmin() && productTypesOk();
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if signedIn();
+      allow write:
+        if isAdmin()
+          && request.resource.data.get('name', '') is string
+          && request.resource.data.name.size() > 0;
+    }
+
+    match /banners/{bannerId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /service_rates/{serviceId} {
+      allow read: if signedIn();
+      allow write:
+        if isAdmin()
+          && request.resource.data.get('title', '') is string
+          && request.resource.data.title.size() > 0;
+    }
+
+    match /creatives/{creativeId} {
+      allow read: if signedIn();
+      allow write:
+        if isAdmin()
+          && request.resource.data.get('name', '') is string
+          && request.resource.data.name.size() > 0;
+    }
+
+    // Default-deny untuk seluruh path lain.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
