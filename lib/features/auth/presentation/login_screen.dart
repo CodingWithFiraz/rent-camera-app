@@ -10,12 +10,8 @@ import '../../../core/widgets/app_form_banner.dart';
 import '../../../core/widgets/app_primary_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import 'auth_controller.dart';
-import 'widgets/auth_form_layout.dart';
 
 /// Layar login: email + kata sandi, atau Google Sign-In.
-///
-/// Navigasi setelah login tidak dilakukan di sini: route guard memindahkan
-/// pengguna ke katalog begitu `authStateChanges()` melaporkan sesi aktif.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -31,8 +27,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Bersihkan pesan dari percobaan sebelumnya. Dilakukan setelah frame
-    // pertama karena mengubah state provider saat build tidak diizinkan.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(authControllerProvider.notifier).clearMessages();
@@ -52,8 +46,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (form == null || !form.validate()) {
       return;
     }
-    // Nilai yang diketik pengguna, dibaca ke variabel lokal agar pemanggilan
-    // aksi terbaca jelas.
     final String rawInput = _passwordController.text;
     await ref
         .read(authControllerProvider.notifier)
@@ -69,8 +61,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _showNoticeIfAny();
   }
 
-  /// Menampilkan peringatan non-fatal (mis. dokumen profil gagal disinkronkan)
-  /// tanpa menyembunyikannya sebagai sukses penuh.
   void _showNoticeIfAny() {
     if (!mounted) {
       return;
@@ -84,98 +74,215 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // Definisi Warna
+    const Color charcoal = Color(0xFF262626);
+    const Color shutterGray = Color(0xFF8C8C8C);
+    const Color studioOrange = Color(0xFFFF6B00);
+    const Color offWhite = Color(0xFFF5F5F5);
+
     final authState = ref.watch(authControllerProvider);
     final isSubmitting = authState.isSubmitting;
     final errorMessage = authState.errorMessage;
 
-    return AuthFormLayout(
-      title: 'Masuk',
-      subtitle:
-          'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
-      children: <Widget>[
-        if (errorMessage != null) ...<Widget>[
-          AppFormBanner.error(errorMessage),
-          const SizedBox(height: AppSpacing.lg),
-        ],
-        Form(
-          key: _formKey,
-          child: AutofillGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                AppTextField(
-                  controller: _identifierController,
-                  label: 'Email',
-                  enabled: !isSubmitting,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const <String>[AutofillHints.email],
-                  validator: (value) => Validators.loginIdentifier(
-                    value,
-                    adminAlias: AppConfig.adminLoginAlias,
-                    isAdminAliasConfigured: AppConfig.isAdminAliasConfigured,
+    // Scaffold dengan latar belakang paling luar berwarna Putih
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            // Kotak Hitam (Charcoal) di tengah dengan Efek Bayangan (Shadow)
+            child: Container(
+              padding: const EdgeInsets.all(32.0),
+              decoration: BoxDecoration(
+                color: charcoal,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                  helperText: AppConfig.isAdminAliasConfigured
-                      ? 'Email akun, atau alias "${AppConfig.adminLoginAlias}".'
-                      : null,
-                ),
-                const SizedBox(height: AppSpacing.fieldGap),
-                AppTextField(
-                  controller: _passwordController,
-                  label: 'Kata sandi',
-                  obscureText: true,
-                  enabled: !isSubmitting,
-                  textInputAction: TextInputAction.done,
-                  autofillHints: const <String>[AutofillHints.password],
-                  validator: Validators.password,
-                  onFieldSubmitted: (_) => _submit(),
-                ),
-              ],
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Judul & Subjudul Rata Tengah
+                  const Text(
+                    'Rent Camera App',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: studioOrange,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Masuk',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: offWhite,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: shutterGray, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+
+                  if (errorMessage != null) ...[
+                    AppFormBanner.error(errorMessage),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+
+                  // Form Input
+                  Form(
+                    key: _formKey,
+                    child: AutofillGroup(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: studioOrange,
+                              ),
+                            ),
+                            child: AppTextField(
+                              controller: _identifierController,
+                              label: 'Email',
+                              enabled: !isSubmitting,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const <String>[
+                                AutofillHints.email,
+                              ],
+                              validator: (value) => Validators.loginIdentifier(
+                                value,
+                                adminAlias: AppConfig.adminLoginAlias,
+                                isAdminAliasConfigured:
+                                    AppConfig.isAdminAliasConfigured,
+                              ),
+                              helperText: AppConfig.isAdminAliasConfigured
+                                  ? 'Email akun, atau alias "${AppConfig.adminLoginAlias}".'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.fieldGap),
+                          Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: studioOrange,
+                              ),
+                            ),
+                            child: AppTextField(
+                              controller: _passwordController,
+                              label: 'Kata sandi',
+                              obscureText: true,
+                              enabled: !isSubmitting,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const <String>[
+                                AutofillHints.password,
+                              ],
+                              validator: Validators.password,
+                              onFieldSubmitted: (_) => _submit(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Tombol Masuk Utama
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: studioOrange,
+                      foregroundColor: offWhite,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: isSubmitting ? null : _submit,
+                    child: isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: offWhite,
+                            ),
+                          )
+                        : const Text(
+                            'Masuk',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // Tombol Google Sign In
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: offWhite,
+                      side: const BorderSide(color: shutterGray),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: isSubmitting ? null : _submitWithGoogle,
+                    icon: const Icon(
+                      Icons.account_circle_outlined,
+                      size: 18,
+                      color: studioOrange,
+                    ),
+                    label: const Text('Masuk dengan Google'),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Tautan Bawah (Lupa kata sandi & Buat akun)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      TextButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () => context.go(AppRoutes.forgotPassword),
+                        child: const Text(
+                          'Lupa kata sandi?',
+                          style: TextStyle(color: studioOrange),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () => context.go(AppRoutes.register),
+                        child: const Text(
+                          'Buat akun',
+                          style: TextStyle(color: studioOrange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        AppPrimaryButton(
-          label: 'Masuk',
-          onPressed: _submit,
-          isLoading: isSubmitting,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        OutlinedButton.icon(
-          onPressed: isSubmitting ? null : _submitWithGoogle,
-          icon: const Icon(Icons.account_circle_outlined, size: 18),
-          label: const Text('Masuk dengan Google'),
-        ),
-        if (!AppConfig.isGoogleServerClientIdConfigured) ...<Widget>[
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Google Sign-In memerlukan server client ID project Firebase '
-            '(lihat SETUP.md).',
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
-        const SizedBox(height: AppSpacing.lg),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          spacing: AppSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            TextButton(
-              onPressed: isSubmitting
-                  ? null
-                  : () => context.go(AppRoutes.forgotPassword),
-              child: const Text('Lupa kata sandi?'),
-            ),
-            TextButton(
-              onPressed: isSubmitting
-                  ? null
-                  : () => context.go(AppRoutes.register),
-              child: const Text('Buat akun'),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
