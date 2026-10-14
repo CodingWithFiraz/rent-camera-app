@@ -9,6 +9,38 @@ Sumber kebenaran:
 
 > **Status dokumen:** hasil **Prompt 0 — Audit & Rencana**. Belum ada fitur aplikasi yang diimplementasikan pada task ini. Seluruh fase pada rencana ini berstatus `Not started`.
 
+> **Catatan pemulihan pada `main` (recovery, bukan fase baru):** sebagian berkas Fase 2 tidak ikut masuk ke `main`
+> saat branch `fitur-katalog-awal` (commit `7365f31`) di-merge, sehingga `flutter analyze` gagal (`Target of URI
+> doesn't exist`, `undefined_identifier`) dan seluruh suite test tidak dapat dikompilasi — termasuk error
+> `test/features/catalog/product_detail_screen_test.dart:61` (`A value of type 'Null' can't be assigned ... in a
+> const constructor`, akibat `CategoryIconKeys.defaultKey` hilang dari `app_constants.dart`).
+>
+> Berkas yang dipulihkan dari `7365f31` ke `main` (tanpa mengubah kode Fase 1/3 yang sudah ada):
+> konstanta katalog pada `lib/core/constants/app_constants.dart`, `lib/core/errors/firestore_data_exception.dart`,
+> `lib/core/utils/firestore_document_reader.dart`, domain+data katalog (`category`, `product`, `price_unit`,
+> `banner` + tiga repository-nya), domain+data keranjang (`cart_item`, `cart_repository`), dan 5 test model
+> (`category_model_test`, `product_model_test`, `price_unit_test`, `banner_model_test`, `cart_item_model_test`).
+> Model/test portofolio & profil (`creative`, `service_rate`, `user_profile`, `profile_providers`,
+> `portfolio_providers`, dan tiga test modelnya) juga dipulihkan dari `7365f31`, karena ketiganya termasuk
+> keluaran Fase 2 pada `docs/PROMPT_CLINE_BERTAHAP.md` (model + repository untuk `service_rates`, `creatives`,
+> `users/{uid}`). `UserProfileRepository` versi branch adalah superset dari versi `main` (menambah `watchProfile`,
+> `fetchProfile`, dan pemetaan error), sehingga pemulihan ini aditif dan menghilangkan error
+> `The method 'watchProfile' isn't defined`. `catalog_placeholder_screen.dart` **tidak** dipulihkan karena sudah
+> digantikan `catalog_screen.dart` (Fase 3) dan tidak direferensikan siapa pun.
+>
+> Dua issue analyzer di `lib/features/auth/presentation/login_screen.dart` ikut dibersihkan karena hanya sisa
+> desain ulang UI (perilaku tidak berubah): menghapus `unused_import` `app_primary_button.dart` dan mengganti
+> `Colors.black.withOpacity(0.15)` menjadi `Colors.black.withValues(alpha: 0.15)`. Assertion tipe tombol pada
+> `test/features/auth/login_screen_test.dart` (2 tempat) dan `test/app_auth_routing_test.dart:84` diselaraskan dari
+> `FilledButton` ke `ElevatedButton` agar cocok dengan desain ulang layar login; assertion perilaku
+> (validasi, pengiriman ke controller, pesan error, state disabled/loading) tidak diubah.
+>
+> Bukti terverifikasi sesudah pemulihan (dijalankan pada `main` + berkas yang dipulihkan):
+> `flutter analyze` → **No issues found!**; `dart format --output=none --set-exit-if-changed lib test` →
+> `Formatted 105 files (0 changed)`; `flutter test` → **175 lulus / 0 gagal** (19 test auth lulus,
+> `flutter test test/features/auth test/app_auth_routing_test.dart` → `All tests passed!`); `git diff --check HEAD`
+> → bersih. Jumlah 175 test kini sama dengan keadaan branch sebelum merge.
+
 ## Cara memakai dokumen ini
 
 - Satu task Cline = satu fase. Kerjakan hanya fase yang diminta, berhenti, lalu review sebelum menjalankan fase berikutnya.

@@ -81,7 +81,7 @@ void main() {
     controller.add(null);
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(FilledButton, 'Masuk'), findsOneWidget);
+    expect(find.widgetWithText(ElevatedButton, 'Masuk'), findsOneWidget);
     expect(find.byType(CatalogScreen), findsNothing);
   });
 

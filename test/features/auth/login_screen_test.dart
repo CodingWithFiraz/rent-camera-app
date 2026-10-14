@@ -88,8 +88,13 @@ Future<void> _fillCredentials(WidgetTester tester, String rawInput) async {
   );
 }
 
+/// Menekan tombol submit login.
+///
+/// Desain ulang layar login memakai `ElevatedButton` bergaya sendiri (bukan
+/// `AppPrimaryButton` yang membungkus `FilledButton`), sehingga finder harus
+/// mengikuti tipe tombol yang benar-benar dipakai layar.
 Future<void> _tapSubmit(WidgetTester tester) async {
-  final button = find.widgetWithText(FilledButton, 'Masuk');
+  final button = find.widgetWithText(ElevatedButton, 'Masuk');
   await tester.ensureVisible(button);
   await tester.pumpAndSettle();
   await tester.tap(button);
@@ -168,8 +173,8 @@ void main() {
     await _tapSubmit(tester);
     await tester.pump();
 
-    final FilledButton button = tester.widget<FilledButton>(
-      find.byType(FilledButton),
+    final ElevatedButton button = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton),
     );
     expect(button.onPressed, isNull);
     expect(find.byType(CircularProgressIndicator), findsWidgets);
