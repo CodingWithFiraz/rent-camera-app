@@ -19,12 +19,6 @@ import 'widgets/catalog_search_field.dart';
 import 'widgets/catalog_section_notice.dart';
 
 /// Halaman Catalog/Home (`docs/BLUEPRINT_APLIKASI.md` §4 dan §5).
-///
-/// Halaman pertama setelah login. Seluruh data dibaca lewat provider katalog
-/// (stream Firestore di repository), sehingga perubahan admin tercermin tanpa
-/// memuat ulang aplikasi. Halaman ini juga pemilik kriteria pencarian/filter:
-/// satu `catalogFilterProvider` dipakai bersama oleh kolom pencarian, chip
-/// filter, dan drawer kategori.
 class CatalogScreen extends ConsumerStatefulWidget {
   const CatalogScreen({super.key});
 
@@ -35,11 +29,12 @@ class CatalogScreen extends ConsumerStatefulWidget {
 class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   late final TextEditingController _searchController;
 
+  // Inisialisasi langsung tanpa 'late' untuk mencegah LateInitializationError secara total
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    // Kata kunci awal diambil dari provider: membuka kembali halaman katalog
-    // tidak menghapus pencarian yang masih aktif.
     _searchController = TextEditingController(
       text: ref.read(catalogFilterProvider).query,
     );
@@ -48,7 +43,18 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   void _handleSearchChanged(String value) =>
@@ -59,21 +65,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     ref.read(catalogFilterProvider.notifier).setQuery('');
   }
 
-  /// Mengembalikan katalog ke keadaan tanpa kriteria.
-  ///
-  /// Kolom pencarian ikut dikosongkan supaya teks di layar tidak menyimpang
-  /// dari kriteria yang benar-benar dipakai.
   void _handleResetFilters() {
     _searchController.clear();
     ref.read(catalogFilterProvider.notifier).reset();
   }
 
-  /// Menjalankan aksi banner sesuai `targetType` dokumennya.
-  ///
-  /// Slide tanpa tujuan valid tidak pernah sampai ke sini: carousel
-  /// menampilkannya sebagai bidang yang tidak dapat ditekan. URL eksternal
-  /// tidak dikarang — nilainya berasal dari dokumen banner dan divalidasi
-  /// [ExternalLauncher] sebelum dibuka.
   void _handleBannerTap(Banner banner) {
     switch (banner.targetType) {
       case BannerTargetType.portfolio:
@@ -90,8 +86,6 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   }
 
   Future<void> _openBannerLink(String rawUrl) async {
-    // Messenger diambil sebelum `await` supaya hasilnya tetap dapat dilaporkan
-    // walau halaman sudah dibangun ulang.
     final messenger = ScaffoldMessenger.of(context);
     final status = await const ExternalLauncher().open(rawUrl);
     final message = _bannerLinkMessage(status);
@@ -101,7 +95,6 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// Pesan untuk hasil pembukaan tautan banner; `null` berarti tanpa pesan.
   static String? _bannerLinkMessage(ExternalLaunchStatus status) {
     switch (status) {
       case ExternalLaunchStatus.launched:
@@ -129,6 +122,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       drawer: const CatalogDrawer(),
       actions: const <Widget>[CatalogAppBarActions()],
       body: ListView(
+        controller: _scrollController,
         padding: AppSpacing.screen,
         children: <Widget>[
           CatalogBannerSection(onSlideTap: _handleBannerTap),
@@ -156,16 +150,15 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                 context.push(AppRoutes.productDetailPath(product.id)),
             onResetFilters: _handleResetFilters,
           ),
+          const SizedBox(height: AppSpacing.xl),
+          const CatalogFaqSection(),
+          const SizedBox(height: AppSpacing.xl),
+          CatalogFooterSection(onScrollToTop: _scrollToTop),
         ],
       ),
     );
   }
 
-  /// Keterangan keadaan kategori (memuat, gagal, atau belum dikonfigurasi).
-  ///
-  /// Chip kategori berasal dari Firestore, jadi UI wajib jujur saat daftar itu
-  /// belum ada; bagian lain halaman tetap dapat dipakai dan punya tombol
-  /// pemulihan sendiri.
   Widget _buildCategoryNotice(AsyncValue<List<Category>> categoriesAsync) {
     if (categoriesAsync.isLoading && !categoriesAsync.hasValue) {
       return const Padding(
@@ -197,5 +190,143 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       );
     }
     return const SizedBox.shrink();
+  }
+}
+
+/// Widget tambahan untuk menampilkan FAQ / QnA di halaman katalog.
+class CatalogFaqSection extends StatelessWidget {
+  const CatalogFaqSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    const Color charcoalText = Color(0xFF1E1E1E);
+    const Color limeGreenBox = Color(0xFFBCEE46);
+
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: limeGreenBox.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: limeGreenBox),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pertanyaan Sering Diajukan (FAQ)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: charcoalText,
+            ),
+          ),
+          SizedBox(height: 12),
+          ExpansionTile(
+            title: Text(
+              'Bagaimana cara menyewa kamera?',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: charcoalText,
+              ),
+            ),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  'Pilih alat yang diinginkan dari katalog, masukkan ke keranjang, lalu ikuti instruksi pengiriman formulir sewa.',
+                  style: TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+              ),
+            ],
+          ),
+          ExpansionTile(
+            title: Text(
+              'Apa saja syarat dokumen penyewaan?',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: charcoalText,
+              ),
+            ),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  'Biasanya memerlukan kartu identitas (KTP/KTM) yang masih berlaku sebagai jaminan pelajar maupun umum.',
+                  style: TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Widget Footer (Copyright 2026 di Kiri, Tombol Scroll ke Atas di Kanan)
+/// Widget Footer (Copyright 2026 di Tengah, Tombol Scroll ke Atas di Kanan)
+class CatalogFooterSection extends StatelessWidget {
+  final VoidCallback onScrollToTop;
+
+  const CatalogFooterSection({super.key, required this.onScrollToTop});
+
+  @override
+  Widget build(BuildContext context) {
+    const Color charcoalText = Color(0xFF1E1E1E);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Spacer penyeimbang di sisi kiri agar teks copyright benar-benar berada di tengah
+          const Spacer(),
+
+          // Bagian Tengah: Copyright 2026 (Rata Tengah)
+          const Expanded(
+            flex: 2,
+            child: Text(
+              '© Copyright 2026, Rent Camera App',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: charcoalText,
+              ),
+            ),
+          ),
+
+          // Sisi Kanan: Tombol Scroll ke Atas
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                onTap: onScrollToTop,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: charcoalText,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_upward,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -31,17 +31,18 @@ class AppScaffold extends StatelessWidget {
 
   /// Nav kiri khusus, misalnya tombol kembali yang tetap bekerja walau route
   /// tidak dapat di-pop (tautan langsung/deep link).
-  ///
-  /// `null` berarti perilaku Material standar: tombol drawer bila [drawer] ada,
-  /// atau tombol kembali bila route dapat di-pop.
   final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
+    const Color charcoalText = Color(0xFF1E1E1E);
     final resolvedDrawer = drawer;
     final resolvedLeading = leading;
+    
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFFBCEE46), // Warna latar belakang AppBar hijau limau
+        foregroundColor: charcoalText, // Warna ikon dan teks otomatis gelap
         // `automaticallyImplyLeading` dimatikan hanya saat pemanggil sudah
         // menyediakan tombol sendiri, supaya tidak ada dua tombol kiri.
         automaticallyImplyLeading: resolvedLeading == null,
@@ -52,6 +53,10 @@ class AppScaffold extends StatelessWidget {
           title ?? AppConfig.appName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: charcoalText,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: actions,
       ),
