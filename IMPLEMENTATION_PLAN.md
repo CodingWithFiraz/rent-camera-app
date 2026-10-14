@@ -21,7 +21,7 @@ Sumber kebenaran:
 | Fase | Judul | Status |
 |---|---|---|
 | 0 | Audit repository & implementation plan | Selesai (dokumen ini) |
-| 1 | Fondasi aplikasi & autentikasi | Not started |
+| 1 | Fondasi aplikasi & autentikasi | Partially complete — kode & test selesai; verifikasi runtime terblokir konfigurasi Firebase |
 | 2 | Model, repository, schema, security rules, data setup | Not started |
 | 3 | Katalog, carousel, search/filter, detail produk, realtime | Not started |
 | 4 | Keranjang, validasi harga/stok, kalkulasi, WhatsApp | Not started |
@@ -54,16 +54,16 @@ Catatan `flutter doctor -v`:
 
 - **Bukan repository Git**: `git rev-parse --is-inside-work-tree` → `fatal: not a git repository`. Konsekuensi: `git status --short` dan `git diff --check` tidak dapat dijalankan sampai `git init` dilakukan (keputusan pemilik).
 - Isi root: `.clinerules/`, `.dart_tool/`, `.idea/`, `android/`, `build/`, `docs/`, `ios/`, `lib/`, `linux/`, `macos/`, `test/`, `web/`, `windows/`, `.gitignore`, `.metadata`, `analysis_options.yaml`, `pubspec.yaml`, `pubspec.lock`, `README.md`, `rent_camera_app.iml`.
-- Kode Dart: hanya `lib/main.dart` — aplikasi template `flutter create` (MaterialApp + `MyHomePage` counter).
-- Test: hanya `test/widget_test.dart` — smoke test counter bawaan template.
+- Kode Dart: `lib/main.dart` (bootstrap Firebase + `ProviderScope`), `lib/app.dart`, `core/**`, dan `features/**` — struktur feature-first Fase 1 (sebelumnya hanya template `flutter create`).
+- Test: `test/` berisi 8 file test Fase 1 (validator, error mapper, route guard, alias login, sesi auth, form login/register, alur bootstrap→login→katalog). `test/widget_test.dart` (smoke test counter template) sudah **diganti** karena widget `MyApp` dihapus.
 - Platform tersedia (skeleton default): android, ios, web, windows, linux, macos. **Target produk: Android + iOS.**
-- Belum ada folder `firebase/`, `scripts/`, `assets/`, `SETUP.md`, maupun `IMPLEMENTATION_PLAN.md` (file ini yang pertama).
+- Belum ada folder `firebase/`, `scripts/`, `assets/`. `SETUP.md` sekarang **ada** (dibuat pada Fase 1) dan mencatat seluruh langkah setup manual.
 
 ### 1.3 pubspec.yaml & pubspec.lock
 
 - `pubspec.yaml`: name `rent_camera_app`, `version: 1.0.0+1`, `environment.sdk: ^3.13.3`; dependencies: `flutter`, `cupertino_icons ^1.0.8`; dev_dependencies: `flutter_test`, `flutter_lints ^6.0.0`. Tidak ada `assets:`/`fonts:` aktif.
 - `pubspec.lock`: **tidak ada** paket `firebase_*`, `cloud_firestore`, `google_sign_in`, `flutter_riverpod`, `go_router`, `url_launcher`, `image_picker`, `cached_network_image`, maupun `intl`. Hanya paket template/transitive (`async`, `collection`, `meta`, `matcher`, `test_api`, `leak_tracker*`, `vm_service`, dll). `sdks: dart ">=3.13.3 <4.0.0"`, `flutter ">=3.18.0-18.0.pre.54"`.
-- Konsekuensi: seluruh dependency stack pada blueprint harus ditambahkan pada fase terkait; versi paket final baru dapat diverifikasi setelah resolusi `pub` yang sebenarnya, dan API paket (khususnya `google_sign_in`) wajib dicek ulang terhadap versi terpasang.
+- **Diperbarui pada Fase 1**: stack sudah ditambahkan lewat `flutter pub add` dan versinya terverifikasi di `pubspec.lock`: `firebase_core 4.15.0`, `firebase_auth 6.7.0`, `cloud_firestore 6.10.0`, `google_sign_in 7.2.0`, `flutter_riverpod 3.4.3` (Riverpod 3), `go_router 18.0.2`. API paket sudah dicek langsung ke source di Pub cache: `GoogleSignIn.instance` + `initialize()` + `authenticate()` + `account.authentication.idToken`, `Notifier`/`NotifierProvider` Riverpod 3, dan `GoRouter(redirect/refreshListenable/initialLocation)`. Sisa paket blueprint (`image_picker`, `url_launcher`, `cached_network_image`, `intl`) belum ditambahkan karena belum dipakai pada Fase 1.
 
 ### 1.4 analysis_options.yaml
 
@@ -97,20 +97,24 @@ Semua pemeriksaan berikut bernilai **tidak ada / belum terkonfigurasi** (hasil `
 
 | Item | Path | Status |
 |---|---|---|
-| Firebase config Android | `android/app/google-services.json` | Belum ada |
+| Firebase config Android | `android/app/google-services.json` | ✅ Ada |
 | Firebase config iOS | `ios/Runner/GoogleService-Info.plist` | Belum ada |
-| Firebase options Dart | `lib/firebase_options.dart` | Belum ada |
+| Firebase options Dart | `lib/firebase_options.dart` | ✅ Ada (hasil `flutterfire configure`; entri `android`, `ios`, `macos`, `web`, `windows`) |
 | Firestore rules | `firebase/firestore.rules` | Belum ada |
 | Storage rules | `firebase/storage.rules` | Belum ada |
-| Firebase project config | `firebase.json`, `.firebaserc` (folder `firebase/`) | Belum ada |
+| Firebase project config | `firebase.json` | ✅ Ada (project `rent-camera-app`); `.firebaserc` belum ada |
 | Script admin/seed | `scripts/` (`grant_admin.mjs`, seed sample) | Belum ada |
-| Dokumentasi setup | `SETUP.md` | Belum ada |
+| Dokumentasi setup | `SETUP.md` | ✅ Ada |
+| Bootstrap Firebase | `lib/core/firebase/firebase_bootstrap.dart` | ✅ Ada — `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` di dalam try/catch → status + kode diagnostik, tidak pernah melempar exception |
+
+Tabel di atas diperbarui setelah konfigurasi Firebase dibuat; status terbaru ada di `SETUP.md` §0.
 
 Catatan tambahan:
-- Android: plugin Gradle `com.google.gms.google-services` belum diterapkan; `applicationId` dan `namespace` masih `com.example.rent_camera_app` (masih ada TODO *"Specify your own unique Application ID"*). Belum ada SHA-1/SHA-256 terdaftar untuk Google Sign-In.
+- Android: plugin Gradle `com.google.gms.google-services` **4.4.4 sudah diterapkan** (`android/settings.gradle.kts`, `android/app/build.gradle.kts`); `applicationId` dan `namespace` masih `com.example.rent_camera_app` (masih ada TODO *"Specify your own unique Application ID"*). Belum ada SHA-1/SHA-256 terdaftar untuk Google Sign-In.
 - iOS: `ios/Runner/Info.plist` masih default (`CFBundleDisplayName` = "Rent Camera App"); belum ada `CFBundleURLTypes`/`REVERSED_CLIENT_ID` untuk Google Sign-In.
 - `local.properties` ada (build lokal), isinya tidak ditampilkan karena berisi path SDK lokal.
-- Firebase Emulator Suite belum mungkin dijalankan: belum ada `firebase.json`/rules untuk diemulasi. Tooling tersedia: Firebase CLI `14.6.0`; `flutterfire_cli 1.2.0` terpasang global tetapi belum ada di PATH → jalankan dengan `dart pub global run flutterfire_cli:flutterfire ...` atau tambahkan folder bin Pub global ke PATH.
+- Firebase Emulator Suite belum mungkin dijalankan karena `firebase/firestore.rules` dan `firebase/storage.rules` belum ada (walaupun `firebase.json` sudah ada). Tooling tersedia: Firebase CLI `14.6.0`; `flutterfire_cli 1.2.0` terpasang global tetapi belum ada di PATH → jalankan dengan `dart pub global run flutterfire_cli:flutterfire ...` atau tambahkan folder bin Pub global ke PATH.
+- Pemetaan kode diagnostik bootstrap (`FirebaseBootstrap.diagnosticCodeFor`) diuji lewat `test/core/firebase/firebase_bootstrap_test.dart`. Subtlety: `FlutterError implements AssertionError`, jadi cabang `FlutterError` (binding belum siap → `flutter-binding-unavailable`) diperiksa lebih dulu agar error binding tidak salah dilaporkan sebagai `options-unavailable`. Di VM test, `Firebase.initializeApp` gagal dengan `PlatformException(channel-error)` → `plugin-unavailable`. Di web/Chrome, bootstrap berhasil memakai entri `web` pada `firebase_options.dart`: dibuktikan dengan `flutter run -d chrome` yang berhenti di route `#/login` (bukan `#/setup-required`) dan mengekspor global web SDK FlutterFire (`firebase_core`, `firebase_auth`, `firebase_firestore`). `flutter test --platform chrome` tidak bisa dipakai di lingkungan ini karena browser host-nya berhenti di "Flutter Test Browser Host" tanpa melaporkan hasil (CPU 0% saat dipantau).
 - Tidak ada secret, service-account JSON, private key, atau password yang ditemukan di repository (tidak ada file semacam itu sama sekali).
 
 ## 2. Rencana per fase
@@ -119,7 +123,7 @@ Setiap fase hanya dikerjakan pada task terpisah. Kolom "File/modul" bersifat per
 
 ### Fase 1 — Fondasi aplikasi & autentikasi
 
-- **Status:** `Not started`
+- **Status:** `Partially complete` — implementasi, format, `flutter analyze`, dan test selesai (71 test hijau). Bootstrap Firebase kini memakai opsi eksplisit `DefaultFirebaseOptions.currentPlatform` di `lib/core/firebase/firebase_bootstrap.dart`, sehingga inisialisasi di web/desktop tidak lagi gagal dengan assertion "FirebaseOptions cannot be null when creating the default app." (dibuktikan `flutter run -d chrome`: masuk `#/login`, lalu sesi Auth nyata terbentuk sampai `#/catalog`). Sisa verifikasi runtime (penulisan `users/{uid}` terhadap rules, Google Sign-In, reset kata sandi) **terblokir** karena rules belum dideploy dan SHA keys / `GOOGLE_SERVER_CLIENT_ID` belum diisi.
 - **Target:** bootstrap aplikasi Flutter (Riverpod + `go_router`), Material 3 theme/design tokens terpusat, shared state widget (loading/error/empty), serta autentikasi Firebase Auth email/password, register, forgot password, dan Google Sign-In native. Auth gate mengarahkan sesi: belum login → Login, sudah login → Catalog (placeholder pada fase ini).
 - **Dependency:** Fase 0 selesai (dokumen ini). Tidak bergantung fase lain.
 - **File/modul yang mungkin disentuh:** `pubspec.yaml` (`firebase_core`, `firebase_auth`, `google_sign_in`, `flutter_riverpod`, `go_router`, `url_launcher` bila dipakai lebih awal), `lib/main.dart`, `lib/app.dart`, `lib/core/config/app_config.dart`, `lib/core/constants/app_constants.dart`, `lib/core/errors/app_exception.dart`, `lib/core/routing/app_router.dart`, `lib/core/routing/auth_guard.dart`, `lib/core/theme/{app_theme,app_colors,app_spacing}.dart`, `lib/core/widgets/{app_loading,app_error_state,app_empty_state,app_primary_button}.dart`, `lib/features/auth/**` (repository, provider, `auth_gate.dart`, login/register/forgot-password), `test/` (test validator/auth yang dapat diuji tanpa kredensial), `SETUP.md` (langkah setup Firebase), `lib/firebase_options.dart` (hasil generate, bukan ditulis manual).
@@ -133,6 +137,19 @@ Setiap fase hanya dikerjakan pada task terpisah. Kolom "File/modul" bersifat per
   - Theme/design tokens terpusat sesuai arah visual blueprint; tidak ada warna/spacing acak di widget.
 - **Blocker eksternal:** project Firebase + hasil `flutterfire configure` (`firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`), provider Email/Password dan Google diaktifkan di Firebase Console, SHA-1/SHA-256 Android terdaftar. Tanpa itu, login end-to-end **tidak boleh** diklaim berfungsi. Android build juga menunggu platform `android-36`.
 - **Verifikasi:** `dart format` file berubah, `flutter analyze`, `flutter test`; uji manual di emulator `Pixel_8_API_31` bila konfigurasi Firebase tersedia; `git diff --check`/`git status --short` hanya bila repo Git sudah dibuat. Perbarui status fase di dokumen ini secara jujur.
+
+**Log implementasi Fase 1 (task ini).**
+
+- Struktur: `lib/app.dart`, `lib/core/{config,constants,errors,firebase,routing,theme,utils,widgets}`, `lib/features/auth/{data,domain,presentation}`, `lib/features/profile/data/user_profile_repository.dart`, `lib/features/catalog/presentation/catalog_placeholder_screen.dart`. Tidak ada query Firebase di widget: akses Firebase hanya lewat repository dan provider.
+- Theme/token terpusat: `app_colors`, `app_spacing`, `app_radius`, `app_typography`, `app_theme` (Material 3, `ColorScheme` eksplisit mengikuti palet blueprint, tanpa gradient/shadow dekoratif).
+- State bersama: `AppLoading`, `AppErrorState`, `AppEmptyState`, `AppFormBanner`, `AppPrimaryButton`, `AppTextField`.
+- Auth: `AuthRepository` (interface) + `FirebaseAuthRepository` (email/password, register, forgot password, Google Sign-In native: `GoogleSignIn.instance.authenticate()` → `GoogleAuthProvider.credential(...)` → `signInWithCredential`), `AuthSessionNotifier` (pemantau sesi untuk go_router), `AuthController` (status loading/error/notice form), layar Login/Register/Lupa Kata Sandi, dan `AuthGate`.
+- `users/{uid}`: `UserProfileRepository.ensureProfileDocument` memakai `set(..., merge: true)` dan hanya menulis field profil (`displayName`, `email`, `photoUrl`, `phoneNumber`, `createdAt`, `updatedAt`). Role/claim admin **tidak pernah** ditulis dari klien. Bila penulisan gagal (mis. rules belum dideploy), aplikasi menampilkan peringatan yang jelas — bukan sukses palsu.
+- Guard: `resolveAuthRedirect` bersifat default-deny, sehingga route apa pun selain `login`, `register`, `forgot-password`, `splash`, dan `setup-required` memerlukan sesi login. `/catalog` pada fase ini hanya placeholder bertanda jelas (bukan katalog palsu).
+- Blocker eksternal yang belum tuntas: project Firebase, `firebase_options.dart`/`google-services.json`/`GoogleService-Info.plist`, provider Email/Password & Google, SHA-1/SHA-256 Android. Tanpa itu aplikasi menampilkan layar "Firebase belum dikonfigurasi" dan login end-to-end **tidak** diklaim berfungsi.
+- Blocker lingkungan: `flutter build apk --debug` gagal dengan `JAVA_HOME is not set and no 'java' command could be found in your PATH`; platform `android-36` juga belum terpasang (tersedia hanya `android-34`, `android-35`).
+- Command nyata dan hasilnya: `dart format lib test` → 44 file diproses; `flutter analyze` → `No issues found! (ran in 2.8s)`; `flutter test` → `All tests passed!` (54 test pada 8 file).
+- Acceptance criteria Fase 1 yang **belum terbukti**: register email/password nyata, login email/password nyata, penulisan dokumen `users/{uid}` nyata, Google Sign-In menghasilkan credential Firebase nyata, dan pengiriman email reset. Semuanya menunggu konfigurasi Firebase.
 
 ### Fase 2 — Model, repository, schema, security rules, data setup
 
@@ -257,7 +274,7 @@ Nilai-nilai berikut **belum ditentukan** dan tidak boleh dikarang. Fase terkait 
 | 10 | Email admin yang dikontrol pemilik (untuk alias `admin`) + metode pemberian claim | Fase 6 | Belum ada |
 | 11 | Foto/aset milik pemilik (produk, banner, profil) & kebijakan placeholder netral | Fase 3, 5, 6 | Belum ada |
 | 12 | Keputusan reset cart setelah checkout WhatsApp dibatalkan/diproses | Fase 4 | Belum ada |
-| 13 | Keputusan `git init` + remote + kebijakan commit per fase | Prasyarat semua fase | Belum ada; repo belum berupa Git |
+| 13 | Repository Git: `git init` + remote + kebijakan commit per fase | Prasyarat semua fase | **Selesai**: repo sudah Git (`main`, `origin/main`), commit awal `6fb46d2 "Initial commit"` |
 | 14 | Ketersediaan/persyaratan paket billing Firebase Storage | Fase 2, 5 | Belum diverifikasi |
 
 Keputusan teknis yang juga perlu persetujuan pemilik (belum diputuskan pada task ini, tidak diimplementasikan):
@@ -286,7 +303,7 @@ Belum dikerjakan pada fase mana pun di atas, kecuali diminta eksplisit oleh pemi
 
 ## 6. Langkah berikutnya
 
-- Prompt yang harus dijalankan berikutnya: **Prompt Fase 1 — Fondasi Flutter dan autentikasi** (bagian C pada `docs/PROMPT_CLINE_BERTAHAP.md`), pada task terpisah.
-- Sebelum Fase 1 berjalan, idealnya pemilik menyiapkan: `git init` + commit baseline, project Firebase + `flutterfire configure`, aktivasi provider Email/Password & Google, SHA keys Android, platform `android-36`, dan nama aplikasi/brand.
+- Prompt yang harus dijalankan berikutnya: **Prompt Fase 2 — Model, repository, schema, security rules, dan data setup** (bagian D pada `docs/PROMPT_CLINE_BERTAHAP.md`), pada task terpisah.
+- Sebelum Fase 2 berjalan, idealnya pemilik menyiapkan: project Firebase + `flutterfire configure`, aktivasi provider Email/Password & Google, SHA keys Android, platform `android-36`, JDK pada `JAVA_HOME`, dan nama aplikasi/brand. Langkah detailnya ada di `SETUP.md`.
 - Setelah Fase 1 selesai: review hasil (`flutter analyze`, test, bukti manual), buat checkpoint Git, baru lanjut Fase 2.
 

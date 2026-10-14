@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "589406484006",
+    "project_id": "rent-camera-app",
+    "storage_bucket": "rent-camera-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589406484006:android:5e6d2a5480f93ea272d8e7",
+        "android_client_info": {
+          "package_name": "com.example.rent_camera_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBouq8X0FHnbHiBxhaUM3Y1pPnIP-ZYl2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
