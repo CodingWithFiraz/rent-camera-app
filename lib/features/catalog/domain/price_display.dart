@@ -58,11 +58,22 @@ class PriceDisplay {
   /// `switch` tanpa `default` dipakai sengaja: penambahan [PriceUnit] baru akan
   /// gagal saat kompilasi, bukan diam-diam tanpa label.
   static String? periodLabelFor(PriceUnit unit) {
+    final word = periodWordFor(unit);
+    return word == null ? null : '/$word';
+  }
+
+  /// Kata satuan periode tanpa garis miring, mis. `hari`.
+  ///
+  /// Dipakai pada teks berkalimat (pesan checkout WhatsApp) yang menulis
+  /// `Rp150.000 / hari` alih-alih `Rp150.000/hari`. Pemetaan tetap satu tempat
+  /// bersama [periodLabelFor] supaya label UI dan teks pesan tidak pernah
+  /// berbeda; `null` berarti periode belum ditetapkan dokumen.
+  static String? periodWordFor(PriceUnit unit) {
     switch (unit) {
       case PriceUnit.perDay:
-        return '/hari';
+        return 'hari';
       case PriceUnit.perSession:
-        return '/sesi';
+        return 'sesi';
       case PriceUnit.unspecified:
         return null;
     }

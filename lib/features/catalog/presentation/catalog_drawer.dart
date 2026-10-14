@@ -6,6 +6,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_drawer.dart';
+import '../../admin/presentation/admin_providers.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../auth/presentation/auth_providers.dart';
 import '../../cart/presentation/cart_providers.dart';
@@ -25,8 +26,10 @@ import 'category_icons.dart';
 /// tombol kembali supaya pengguna tidak terjebak pada halaman yang dibuka
 /// dengan `push`.
 ///
-/// Catatan cakupan: entri "Dashboard Admin" belum ditampilkan karena baru boleh
-/// muncul setelah custom claim `{admin: true}` dapat dibaca (fase dashboard).
+/// Entri "Dashboard Admin" hanya muncul saat `AdminAccessNotifier` melaporkan
+/// status `granted`, yaitu ketika custom claim `{admin: true}` benar-benar
+/// terbaca dari ID token. Menyembunyikan entri bukan pengamanan: route guard dan
+/// Firestore/Storage rules tetap menolak akses tanpa claim tersebut.
 class CatalogDrawer extends ConsumerWidget {
   const CatalogDrawer({super.key});
 
@@ -47,6 +50,7 @@ class CatalogDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final session = ref.watch(authSessionNotifierProvider);
+    final adminAccess = ref.watch(adminAccessNotifierProvider);
     final categoriesAsync = ref.watch(activeCategoriesProvider);
     final filter = ref.watch(catalogFilterProvider);
     final isSubmitting = ref.watch(authControllerProvider).isSubmitting;
@@ -56,7 +60,7 @@ class CatalogDrawer extends ConsumerWidget {
     final categories = categoriesAsync.value ?? const <Category>[];
 
     return ListenableBuilder(
-      listenable: session,
+      listenable: Listenable.merge(<Listenable>[session, adminAccess]),
       builder: (BuildContext context, Widget? _) {
         final user = session.user;
         final itemCount = ref.watch(cartItemCountProvider(user?.uid ?? ''));
@@ -91,6 +95,7 @@ class CatalogDrawer extends ConsumerWidget {
             navigator: navigator,
             filterNotifier: filterNotifier,
             router: router,
+            showAdmin: adminAccess.isGranted,
           ),
           footer: _footer(
             ref: ref,
@@ -115,6 +120,7 @@ class CatalogDrawer extends ConsumerWidget {
     required NavigatorState navigator,
     required CatalogFilterNotifier filterNotifier,
     required GoRouter router,
+    required bool showAdmin,
   }) {
     void closeThen(VoidCallback action) {
       navigator.pop();
@@ -164,6 +170,15 @@ class CatalogDrawer extends ConsumerWidget {
         icon: Icons.person_outline,
         onTap: () => closeThen(() => router.push(AppRoutes.profile)),
       ),
+      // Hanya tampil untuk admin terverifikasi. Route guard tetap menolak
+      // akses langsung ke `/admin` tanpa claim, jadi entri ini murni petunjuk
+      // navigasi, bukan kontrol keamanan.
+      if (showAdmin)
+        AppDrawerEntry(
+          label: 'Dashboard admin',
+          icon: Icons.admin_panel_settings_outlined,
+          onTap: () => closeThen(() => router.push(AppRoutes.admin)),
+        ),
     ];
   }
 

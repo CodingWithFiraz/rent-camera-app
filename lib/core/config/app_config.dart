@@ -1,3 +1,5 @@
+import '../utils/whatsapp_checkout_link.dart';
+
 /// Konfigurasi aplikasi yang terpusat.
 ///
 /// Tidak ada kredensial di sini: nilai yang bergantung pada pemilik project
@@ -39,7 +41,23 @@ abstract final class AppConfig {
     'GOOGLE_IOS_CLIENT_ID',
   );
 
+  /// Nomor WhatsApp tujuan permintaan sewa.
+  ///
+  /// Format internasional tanpa `+`, spasi, atau tanda baca: kode negara
+  /// diikuti nomor, tanpa awalan `0` (langkah pengisian ada di `SETUP.md` §3).
+  /// Nomor final belum ditentukan pemilik, jadi **tidak ada default**: selama
+  /// `WHATSAPP_NUMBER` belum diisi, aplikasi menonaktifkan tombol checkout dan
+  /// menjelaskan bahwa nomor belum dikonfigurasi. Nilai ini sengaja hanya ada di
+  /// sini; nomor tidak boleh disebar ke widget lain.
+  static const String whatsappNumber = String.fromEnvironment(
+    'WHATSAPP_NUMBER',
+  );
+
   static bool get isAdminAliasConfigured => adminEmail.trim().isNotEmpty;
+
+  /// `true` bila [whatsappNumber] dapat dipakai membangun tautan `wa.me`.
+  static bool get isWhatsAppNumberConfigured =>
+      WhatsAppCheckoutLink.isUsableNumber(whatsappNumber);
 
   static bool get isGoogleServerClientIdConfigured =>
       googleServerClientId.trim().isNotEmpty;

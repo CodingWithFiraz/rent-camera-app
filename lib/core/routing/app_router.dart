@@ -2,38 +2,57 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/widgets/upcoming_feature_screen.dart';
+import '../../features/admin/domain/admin_guard.dart';
+import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/admin_providers.dart';
+import '../../features/admin/presentation/product_form_screen.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/auth/presentation/firebase_setup_required_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/cart/presentation/cart_screen.dart';
 import '../../features/catalog/presentation/catalog_screen.dart';
 import '../../features/catalog/presentation/product_detail_screen.dart';
+import '../../features/portfolio/presentation/portfolio_screen.dart';
+import '../../features/profile/presentation/edit_profile_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 import '../firebase/firebase_providers.dart';
 import '../widgets/app_error_state.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
 
-/// Router aplikasi beserta route guard autentikasi.
+/// Router aplikasi beserta route guard autentikasi dan admin.
 ///
-/// Redirect dihitung oleh [resolveAuthRedirect] dan router menyegarkan diri
-/// lewat [AuthSessionNotifier] (`refreshListenable`), sehingga perubahan sesi
-/// langsung memindahkan pengguna antara route auth dan route terproteksi.
+/// Redirect dihitung oleh [resolveAuthRedirect] lalu [resolveAdminRedirect], dan
+/// router menyegarkan diri lewat `refreshListenable` berisi [AuthSessionNotifier]
+/// dan [AdminAccessNotifier], sehingga perubahan sesi maupun perubahan claim
+/// admin langsung memindahkan pengguna antara route auth, katalog, dan area
+/// admin.
 final goRouterProvider = Provider<GoRouter>((ref) {
   final bootstrapStatus = ref.watch(firebaseBootstrapProvider);
   final session = ref.watch(authSessionNotifierProvider);
+  final adminAccess = ref.watch(adminAccessNotifierProvider);
 
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
-    refreshListenable: session,
-    redirect: (BuildContext context, GoRouterState state) =>
-        resolveAuthRedirect(
-          location: state.matchedLocation,
-          isFirebaseConfigured: bootstrapStatus.isConfigured,
-          sessionStatus: session.status,
-        ),
+    refreshListenable: Listenable.merge(<Listenable>[session, adminAccess]),
+    redirect: (BuildContext context, GoRouterState state) {
+      final location = state.matchedLocation;
+      final authRedirect = resolveAuthRedirect(
+        location: location,
+        isFirebaseConfigured: bootstrapStatus.isConfigured,
+        sessionStatus: session.status,
+      );
+      if (authRedirect != null) {
+        return authRedirect;
+      }
+      return resolveAdminRedirect(
+        location: location,
+        access: adminAccess.status,
+      );
+    },
     errorBuilder: (BuildContext context, GoRouterState state) =>
         const _RouteNotFoundScreen(),
     routes: <RouteBase>[
@@ -85,37 +104,43 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.cart,
         name: 'cart',
         builder: (BuildContext context, GoRouterState state) =>
-            const UpcomingFeatureScreen(
-              title: 'Keranjang',
-              phaseLabel: 'Fase 4 — Keranjang & Checkout WhatsApp',
-              message:
-                  'Daftar alat, pengaturan jumlah, dan checkout WhatsApp belum '
-                  'dibangun, sehingga keranjang belum dapat dibuka.',
-            ),
+            const CartScreen(),
       ),
       GoRoute(
         path: AppRoutes.portfolio,
         name: 'portfolio',
         builder: (BuildContext context, GoRouterState state) =>
-            const UpcomingFeatureScreen(
-              title: 'Portofolio & Layanan',
-              phaseLabel: 'Fase 5 — Portofolio, Rate Card & Profil',
-              message:
-                  'Rate card layanan dan kartu kreator belum dibangun, '
-                  'sehingga halaman ini belum menampilkan data apa pun.',
-            ),
+            const PortfolioScreen(),
       ),
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
         builder: (BuildContext context, GoRouterState state) =>
-            const UpcomingFeatureScreen(
-              title: 'Profil',
-              phaseLabel: 'Fase 5 — Portofolio, Rate Card & Profil',
-              message:
-                  'Pengaturan nama, nomor telepon, dan foto profil belum '
-                  'dibangun.',
-            ),
+            const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.editProfile,
+        name: 'editProfile',
+        builder: (BuildContext context, GoRouterState state) =>
+            const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.admin,
+        name: 'admin',
+        builder: (BuildContext context, GoRouterState state) =>
+            const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminProductNew,
+        name: 'adminProductNew',
+        builder: (BuildContext context, GoRouterState state) =>
+            const ProductFormScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminProductEdit,
+        name: 'adminProductEdit',
+        builder: (BuildContext context, GoRouterState state) =>
+            ProductFormScreen(productId: state.pathParameters['productId'] ?? ''),
       ),
     ],
   );

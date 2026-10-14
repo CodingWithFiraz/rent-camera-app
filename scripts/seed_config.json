@@ -1,0 +1,59 @@
+{
+  "_catatan": "Konfigurasi seed data contoh (blueprint §6.6 dan §6.7). Isi berkas ini ADALAH DATA CONTOH, bukan data produksi: label rate memakai 'CONTOH RATE — BELUM FINAL' (default skrip), sedangkan harga final, deliverables, foto kreator, dan tautan portofolio sengaja dikosongkan sampai pemilik mengisinya. Lihat scripts/seed_sample_data.mjs.",
+  "_diisi_pemilik": [
+    "rateLabel: ganti dengan label final (mis. 'Mulai dari') setelah harga disepakati.",
+    "startingPrice: integer Rupiah; priceUnit: 'per_day' atau 'per_session'.",
+    "deliverables: daftar keluaran pekerjaan yang benar-benar dijanjikan.",
+    "creatives[].name, roleTitle, specialties: data kreator yang sebenarnya.",
+    "creatives[].photoUrl dan creatives[].portfolioUrl: URL milik kreator (http/https).",
+    "Set isActive: false bila layanan/kreator tidak dipakai, lalu hapus dokumen ber-penanda isSample setelah data asli siap."
+  ],
+  "serviceRates": [
+    {
+      "id": "commercial_social_media_video",
+      "title": "Commercial / Social Media Video",
+      "description": "Produksi video komersial dan konten media sosial untuk branding dan promosi produk.",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "video_editing_post_production",
+      "title": "Video Editing / Post-production",
+      "description": "Penyuntingan dan pasca-produksi video untuk berbagai kebutuhan materi visual.",
+      "sortOrder": 2,
+      "isActive": true
+    },
+    {
+      "id": "event_project_documentation",
+      "title": "Event & Project Documentation",
+      "description": "Dokumentasi event, peluncuran proyek, seminar, konser, atau gathering.",
+      "sortOrder": 3,
+      "isActive": true
+    },
+    {
+      "id": "commercial_portrait_photography",
+      "title": "Commercial & Portrait Photography",
+      "description": "Fotografi komersial, foto produk, katalog busana, dan foto profil profesional.",
+      "sortOrder": 4,
+      "isActive": true
+    }
+  ],
+  "creatives": [
+    {
+      "id": "kreator_1",
+      "name": "Nama kreator pertama (contoh)",
+      "roleTitle": "Videographer & Video Editor (data contoh)",
+      "specialties": [],
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "kreator_2",
+      "name": "Nama kreator kedua (contoh)",
+      "roleTitle": "Photographer & Visual Content (data contoh)",
+      "specialties": [],
+      "sortOrder": 2,
+      "isActive": true
+    }
+  ]
+}

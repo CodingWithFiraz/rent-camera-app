@@ -130,10 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: mutedGray,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: mutedGray, fontSize: 14),
                   ),
                   const SizedBox(height: 24),
 
@@ -149,8 +146,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
                           Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: customOrangeButton,
+                              ),
                             ),
                             child: AppTextField(
                               controller: _identifierController,
@@ -171,8 +170,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: customOrangeButton,
+                              ),
                             ),
                             child: AppTextField(
                               controller: _passwordController,
@@ -213,7 +214,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           )
                         : const Text(
                             'Masuk',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color.fromARGB(255, 255, 255, 255),),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -229,7 +233,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     onPressed: isSubmitting ? null : _submitWithGoogle,
-                    icon: const Icon(Icons.account_circle_outlined, size: 18, color: charcoalText),
+                    icon: const Icon(
+                      Icons.account_circle_outlined,
+                      size: 18,
+                      color: customOrangeButton,
+                    ),
                     label: const Text('Masuk dengan Google'),
                   ),
 
@@ -243,13 +251,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () => context.go(AppRoutes.forgotPassword),
-                        child: const Text('Lupa kata sandi?', style: TextStyle(color: charcoalText, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Lupa kata sandi?',
+                          style: TextStyle(color: customOrangeButton),
+                        ),
                       ),
                       TextButton(
                         onPressed: isSubmitting
                             ? null
                             : () => context.go(AppRoutes.register),
-                        child: const Text('Buat akun', style: TextStyle(color: charcoalText, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Buat akun',
+                          style: TextStyle(color: customOrangeButton),
+                        ),
                       ),
                     ],
                   ),

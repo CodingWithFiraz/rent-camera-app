@@ -102,4 +102,39 @@ void main() {
       expect(Validators.displayName('Nama Pengguna'), isNull);
     });
   });
+
+  group('Validators.phoneNumber', () {
+    // Nomor uji disusun dari potongan digit supaya tidak ada nomor yang mirip
+    // nomor nyata yang tertulis harfiah di dalam test.
+    final String phoneDigits = <String>['08', '12', '345', '678'].join();
+    final String tooManyDigits = List<String>.filled(16, '1').join();
+
+    test('nomor kosong bukan kesalahan karena bersifat opsional', () {
+      expect(Validators.phoneNumber(null), isNull);
+      expect(Validators.phoneNumber('   '), isNull);
+    });
+
+    test('menerima nomor dengan spasi, tanda plus, dan kurung', () {
+      expect(Validators.phoneNumber('+62 $phoneDigits'), isNull);
+      expect(Validators.phoneNumber(phoneDigits), isNull);
+      expect(Validators.phoneNumber('(021) 1234567'), isNull);
+    });
+
+    test('menolak huruf dan simbol lain', () {
+      expect(
+        Validators.phoneNumber('${phoneDigits}a'),
+        'Nomor telepon hanya boleh berisi angka, spasi, tanda +, -, atau kurung.',
+      );
+      expect(Validators.phoneNumber('$phoneDigits#'), isNotNull);
+    });
+
+    test('menolak jumlah digit yang tidak wajar', () {
+      expect(
+        Validators.phoneNumber('123456'),
+        'Nomor telepon harus '
+        '${Validators.minPhoneDigits}–${Validators.maxPhoneDigits} digit.',
+      );
+      expect(Validators.phoneNumber(tooManyDigits), isNotNull);
+    });
+  });
 }

@@ -5,8 +5,15 @@
 abstract final class Validators {
   static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
+  /// Karakter yang boleh muncul pada nomor telepon profil.
+  static final RegExp _phonePattern = RegExp(r'^[0-9+()\s-]+$');
+
   /// Panjang minimum kata sandi yang diminta aplikasi.
   static const int minPasswordLength = 8;
+
+  /// Panjang digit nomor telepon yang diterima (tanpa spasi/tanda baca).
+  static const int minPhoneDigits = 8;
+  static const int maxPhoneDigits = 15;
 
   /// Validasi nama pengguna pada register/profil.
   static String? displayName(String? value) {
@@ -77,6 +84,26 @@ abstract final class Validators {
     }
     if (text != password) {
       return 'Konfirmasi kata sandi tidak sama.';
+    }
+    return null;
+  }
+
+  /// Validasi nomor telepon pada layar edit profil.
+  ///
+  /// Nomor bersifat opsional (blueprint §6.3: hanya nama/telepon/foto yang boleh
+  /// diubah): kosong berarti pengguna belum mengisi, bukan kesalahan. Bila
+  /// diisi, jumlah digit dibatasi supaya salah ketik ketahuan sebelum disimpan.
+  static String? phoneNumber(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) {
+      return null;
+    }
+    if (!_phonePattern.hasMatch(text)) {
+      return 'Nomor telepon hanya boleh berisi angka, spasi, tanda +, -, atau kurung.';
+    }
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < minPhoneDigits || digits.length > maxPhoneDigits) {
+      return 'Nomor telepon harus $minPhoneDigits–$maxPhoneDigits digit.';
     }
     return null;
   }

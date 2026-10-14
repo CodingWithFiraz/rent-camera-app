@@ -136,6 +136,32 @@ class CartRepository {
     }
   }
 
+  /// Menyalin harga dan satuan periode terbaru produk ke baris keranjang.
+  ///
+  /// Dipakai halaman keranjang ketika harga dokumen berubah setelah produk
+  /// ditambahkan: checkout tidak boleh memakai harga lama (snapshot) karena
+  /// pesan WhatsApp akan menyebut biaya yang tidak berlaku lagi. Quantity,
+  /// nama, brand, dan foto tidak diubah.
+  ///
+  /// [product] harus hasil baca ulang dari Firestore, bukan data widget.
+  Future<void> syncItemSnapshot({
+    required String uid,
+    required Product product,
+  }) async {
+    try {
+      await _cartItems(uid).doc(product.id).update(<String, dynamic>{
+        CartItemFields.productNameSnapshot: product.name,
+        CartItemFields.brandSnapshot: product.brand,
+        CartItemFields.imageUrlSnapshot: product.primaryImageUrl ?? '',
+        CartItemFields.unitPriceSnapshot: product.price,
+        CartItemFields.priceUnitSnapshot: product.priceUnit.storageValue,
+        CartItemFields.updatedAt: FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      throw mapRepositoryError(error, entityLabel: _entityLabel);
+    }
+  }
+
   /// Menghapus satu baris keranjang.
   Future<void> removeItem({
     required String uid,

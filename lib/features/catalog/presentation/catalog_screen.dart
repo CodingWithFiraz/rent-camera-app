@@ -209,57 +209,63 @@ class CatalogFaqSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: limeGreenBox),
       ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pertanyaan Sering Diajukan (FAQ)',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: charcoalText,
-            ),
-          ),
-          SizedBox(height: 12),
-          ExpansionTile(
-            title: Text(
-              'Bagaimana cara menyewa kamera?',
+      child: Material(
+        // `Material` transparan menjaga efek ketuk `ExpansionTile` tetap terlihat:
+        // tanpa lapisan ini, `ListTile` di dalam `DecoratedBox` berwarna akan
+        // memicu assertion Flutter dan riak ketukan tidak tampil.
+        type: MaterialType.transparency,
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pertanyaan Sering Diajukan (FAQ)',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
                 color: charcoalText,
               ),
             ),
-            children: [
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text(
-                  'Pilih alat yang diinginkan dari katalog, masukkan ke keranjang, lalu ikuti instruksi pengiriman formulir sewa.',
-                  style: TextStyle(fontSize: 13, color: Colors.black87),
+            SizedBox(height: 12),
+            ExpansionTile(
+              title: Text(
+                'Bagaimana cara menyewa kamera?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
                 ),
               ),
-            ],
-          ),
-          ExpansionTile(
-            title: Text(
-              'Apa saja syarat dokumen penyewaan?',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: charcoalText,
-              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Pilih alat yang diinginkan dari katalog, masukkan ke keranjang, lalu ikuti instruksi pengiriman formulir sewa.',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
             ),
-            children: [
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text(
-                  'Biasanya memerlukan kartu identitas (KTP/KTM) yang masih berlaku sebagai jaminan pelajar maupun umum.',
-                  style: TextStyle(fontSize: 13, color: Colors.black87),
+            ExpansionTile(
+              title: Text(
+                'Apa saja syarat dokumen penyewaan?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
                 ),
               ),
-            ],
-          ),
-        ],
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Biasanya memerlukan kartu identitas (KTP/KTM) yang masih berlaku sebagai jaminan pelajar maupun umum.',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

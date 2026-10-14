@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Skrip pemeliharaan Firebase Admin SDK (Fase 5)
+# Dependensi skrip dan kunci service account tidak boleh masuk repository.
+scripts/node_modules/
+scripts/package-lock.json
+scripts/service-account*.json
+*.serviceAccount.json

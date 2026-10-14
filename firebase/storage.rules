@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// Storage Rules Rent Camera App — blueprint §9 bagian Storage dan §10.
+//
+// Ringkasan izin:
+// - `products/**`, `banners/**`, dan `creatives/**` hanya boleh ditulis admin
+//   (custom claim `admin: true` dari Firebase Auth), karena foto katalog dan
+//   foto kreator dikelola admin.
+// - `profiles/{uid}/**` hanya boleh ditulis pemilik UID itu sendiri, sehingga
+//   satu pengguna tidak pernah dapat mengganti foto pengguna lain.
+// - Setiap tulisan wajib berupa gambar dan tidak melebihi 5 MB — nilai yang
+//   sama dengan `UploadLimits.maxImageSizeBytes` dan validasi sisi aplikasi.
+// - Tidak ada izin yang diberikan secara implisit: kecocokan path lain jatuh ke
+//   blok terakhir (`if false`).
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isWithinSizeLimit() {
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function isWritableImage() {
+      return isImage() && isWithinSizeLimit();
+    }
+
+    // Foto produk: dibaca pengguna yang login, ditulis admin.
+    match /products/{productId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && isWritableImage();
+      allow delete: if isAdmin();
+    }
+
+    // Gambar banner: dibaca pengguna yang login, ditulis admin.
+    match /banners/{bannerId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && isWritableImage();
+      allow delete: if isAdmin();
+    }
+
+    // Foto kreator: dibaca pengguna yang login, ditulis admin.
+    match /creatives/{creativeId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && isWritableImage();
+      allow delete: if isAdmin();
+    }
+
+    // Foto profil: hanya pemilik UID yang boleh menulis/menghapus.
+    match /profiles/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update:
+        if signedIn() && request.auth.uid == uid && isWritableImage();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Default-deny untuk seluruh path lain.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

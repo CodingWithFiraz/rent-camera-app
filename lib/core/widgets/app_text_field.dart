@@ -16,6 +16,7 @@ class AppTextField extends StatefulWidget {
     this.onFieldSubmitted,
     this.textCapitalization = TextCapitalization.none,
     this.focusNode,
+    this.maxLines = 1,
   });
 
   final TextEditingController controller;
@@ -35,6 +36,9 @@ class AppTextField extends StatefulWidget {
   final ValueChanged<String>? onFieldSubmitted;
   final TextCapitalization textCapitalization;
   final FocusNode? focusNode;
+
+  /// Jumlah baris tampilan; > 1 dipakai untuk field catatan/deskripsi.
+  final int maxLines;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -56,6 +60,7 @@ class _AppTextFieldState extends State<AppTextField> {
       textCapitalization: widget.textCapitalization,
       validator: widget.validator,
       onFieldSubmitted: widget.onFieldSubmitted,
+      maxLines: widget.obscureText ? 1 : widget.maxLines,
       decoration: InputDecoration(
         labelText: widget.label,
         helperText: widget.helperText,

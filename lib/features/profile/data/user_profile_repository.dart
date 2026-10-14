@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/repository_error_mapper.dart';
 import '../domain/user_profile.dart';
 
@@ -101,5 +102,62 @@ class UserProfileRepository {
     }
 
     await document.set(data, SetOptions(merge: true));
+  }
+
+  /// Menyimpan perubahan profil yang boleh ditulis klien.
+  ///
+  /// Hanya field pada [UserProfile.writableFields] yang dikirim, sehingga layar
+  /// edit profil tidak pernah menyentuh `email`, `createdAt`, atau field
+  /// role/claim (blueprint §9: update pemilik dibatasi pada field profil yang
+  /// diizinkan). [photoUrl] `null` berarti foto lama dipertahankan; nilai itulah
+  /// yang dipakai saat unggahan foto baru gagal.
+  Future<void> updateProfile({
+    required String uid,
+    required String displayName,
+    required String phoneNumber,
+    String? photoUrl,
+  }) async {
+    final id = uid.trim();
+    if (id.isEmpty) {
+      throw const AppException(
+        'Sesi login tidak ditemukan, sehingga profil tidak dapat disimpan. '
+        'Masuk kembali lalu coba lagi.',
+      );
+    }
+    final name = displayName.trim();
+    if (name.isEmpty) {
+      throw const AppException('Nama wajib diisi.');
+    }
+
+    final data = <String, dynamic>{
+      UserProfileFields.displayName: name,
+      // Nomor telepon kosong ikut ditulis supaya pengguna dapat menghapusnya.
+      UserProfileFields.phoneNumber: phoneNumber.trim(),
+      UserProfileFields.updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    final normalizedPhotoUrl = photoUrl?.trim();
+    if (normalizedPhotoUrl != null && normalizedPhotoUrl.isNotEmpty) {
+      data[UserProfileFields.photoUrl] = normalizedPhotoUrl;
+    }
+
+    // Pertahanan terakhir: apa pun yang keliru disusun pemanggil tetap tidak
+    // boleh menulis field di luar daftar yang diizinkan.
+    for (final field in data.keys) {
+      if (field == UserProfileFields.updatedAt) {
+        continue;
+      }
+      if (!UserProfile.writableFields.contains(field)) {
+        throw AppException(
+          'Field profil "$field" tidak boleh diubah aplikasi.',
+        );
+      }
+    }
+
+    try {
+      await _document(id).set(data, SetOptions(merge: true));
+    } catch (error) {
+      throw mapRepositoryError(error, entityLabel: _entityLabel);
+    }
   }
 }

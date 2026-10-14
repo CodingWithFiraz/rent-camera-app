@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'firebase_bootstrap.dart';
@@ -37,4 +38,19 @@ final firebaseFirestoreProvider = Provider<FirebaseFirestore>((ref) {
     );
   }
   return FirebaseFirestore.instance;
+});
+
+/// Instance `FirebaseStorage` dengan aturan yang sama seperti
+/// [firebaseAuthProvider].
+///
+/// Dipakai menyimpan foto profil ke `profiles/{uid}/**` (blueprint §10). Bucket
+/// Storage harus benar-benar aktif pada project Firebase; bila belum, unggahan
+/// gagal dengan pesan yang sudah dipetakan, bukan klaim berhasil.
+final firebaseStorageProvider = Provider<FirebaseStorage>((ref) {
+  if (!ref.watch(firebaseBootstrapProvider).isConfigured) {
+    throw StateError(
+      'Firebase Storage belum tersedia: konfigurasi Firebase belum ada (lihat SETUP.md).',
+    );
+  }
+  return FirebaseStorage.instance;
 });

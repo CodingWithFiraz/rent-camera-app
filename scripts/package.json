@@ -1,0 +1,8 @@
+{
+  "name": "rent-camera-app-scripts",
+  "private": true,
+  "description": "Skrip pemeliharaan manual (Firebase Admin SDK). Tidak dipakai oleh aplikasi Flutter.",
+  "dependencies": {
+    "firebase-admin": "^13.6.0"
+  }
+}

@@ -1,1 +1,31 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"rent-camera-app","appId":"1:589406484006:android:5e6d2a5480f93ea272d8e7","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"rent-camera-app","configurations":{"android":"1:589406484006:android:5e6d2a5480f93ea272d8e7","ios":"1:589406484006:ios:20570f17c976522e72d8e7","macos":"1:589406484006:ios:20570f17c976522e72d8e7","web":"1:589406484006:web:e36b0df4c4a0a53172d8e7","windows":"1:589406484006:web:07a19fafd25d33c072d8e7"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "rent-camera-app",
+          "appId": "1:589406484006:android:5e6d2a5480f93ea272d8e7",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "rent-camera-app",
+          "configurations": {
+            "android": "1:589406484006:android:5e6d2a5480f93ea272d8e7",
+            "ios": "1:589406484006:ios:20570f17c976522e72d8e7",
+            "macos": "1:589406484006:ios:20570f17c976522e72d8e7",
+            "web": "1:589406484006:web:e36b0df4c4a0a53172d8e7",
+            "windows": "1:589406484006:web:07a19fafd25d33c072d8e7"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firebase/firestore.rules"
+  },
+  "storage": {
+    "rules": "firebase/storage.rules"
+  }
+}
