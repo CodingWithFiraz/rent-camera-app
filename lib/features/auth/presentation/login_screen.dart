@@ -73,17 +73,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Definisi Warna
-    const Color charcoal = Color(0xFF262626);
-    const Color shutterGray = Color(0xFF8C8C8C);
-    const Color studioOrange = Color(0xFFFF6B00);
-    const Color offWhite = Color(0xFFF5F5F5);
+    // Definisi Warna yang disamakan dengan Lupa Kata Sandi
+    const Color limeGreenBox = Color(0xFFBCEE46);
+    const Color charcoalText = Color(0xFF1E1E1E);
+    const Color mutedGray = Color(0xFF4A4A4A);
+    const Color customOrangeButton = Color.fromARGB(255, 255, 94, 0);
 
     final authState = ref.watch(authControllerProvider);
     final isSubmitting = authState.isSubmitting;
     final errorMessage = authState.errorMessage;
 
-    // Scaffold dengan latar belakang paling luar berwarna Putih
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -91,15 +90,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.all(24.0),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            // Kotak Hitam (Charcoal) di tengah dengan Efek Bayangan (Shadow)
             child: Container(
               padding: const EdgeInsets.all(32.0),
               decoration: BoxDecoration(
-                color: charcoal,
+                color: limeGreenBox,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Colors.black.withOpacity(0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -109,14 +107,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Judul & Subjudul Rata Tengah
                   const Text(
                     'Rent Camera App',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: studioOrange,
+                      color: customOrangeButton,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -124,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'Masuk',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: offWhite,
+                      color: charcoalText,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
@@ -133,7 +130,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: shutterGray, fontSize: 14),
+                    style: TextStyle(
+                      color: mutedGray,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -142,7 +142,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: AppSpacing.lg),
                   ],
 
-                  // Form Input
                   Form(
                     key: _formKey,
                     child: AutofillGroup(
@@ -150,10 +149,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
                           Theme(
-                            data: ThemeData.dark().copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: studioOrange,
-                              ),
+                            data: ThemeData.light().copyWith(
+                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
                             ),
                             child: AppTextField(
                               controller: _identifierController,
@@ -161,14 +158,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               enabled: !isSubmitting,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[
-                                AutofillHints.email,
-                              ],
+                              autofillHints: const <String>[AutofillHints.email],
                               validator: (value) => Validators.loginIdentifier(
                                 value,
                                 adminAlias: AppConfig.adminLoginAlias,
-                                isAdminAliasConfigured:
-                                    AppConfig.isAdminAliasConfigured,
+                                isAdminAliasConfigured: AppConfig.isAdminAliasConfigured,
                               ),
                               helperText: AppConfig.isAdminAliasConfigured
                                   ? 'Email akun, atau alias "${AppConfig.adminLoginAlias}".'
@@ -177,10 +171,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
-                            data: ThemeData.dark().copyWith(
-                              colorScheme: const ColorScheme.dark(
-                                primary: studioOrange,
-                              ),
+                            data: ThemeData.light().copyWith(
+                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
                             ),
                             child: AppTextField(
                               controller: _passwordController,
@@ -188,9 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               obscureText: true,
                               enabled: !isSubmitting,
                               textInputAction: TextInputAction.done,
-                              autofillHints: const <String>[
-                                AutofillHints.password,
-                              ],
+                              autofillHints: const <String>[AutofillHints.password],
                               validator: Validators.password,
                               onFieldSubmitted: (_) => _submit(),
                             ),
@@ -201,11 +191,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
-                  // Tombol Masuk Utama
+                  // Tombol Utama Masuk (Oranye dengan teks hitam)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: studioOrange,
-                      foregroundColor: offWhite,
+                      backgroundColor: customOrangeButton,
+                      foregroundColor: charcoalText,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -213,46 +203,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     onPressed: isSubmitting ? null : _submit,
                     child: isSubmitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: offWhite,
+                              color: charcoalText,
                             ),
                           )
                         : const Text(
                             'Masuk',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color.fromARGB(255, 254, 253, 253)),
                           ),
                   ),
                   const SizedBox(height: AppSpacing.md),
 
-                  // Tombol Google Sign In
+                  // Tombol Masuk dengan Google
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: offWhite,
-                      side: const BorderSide(color: shutterGray),
+                      foregroundColor: charcoalText,
+                      side: const BorderSide(color: charcoalText),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     onPressed: isSubmitting ? null : _submitWithGoogle,
-                    icon: const Icon(
-                      Icons.account_circle_outlined,
-                      size: 18,
-                      color: studioOrange,
-                    ),
+                    icon: const Icon(Icons.account_circle_outlined, size: 18, color: charcoalText),
                     label: const Text('Masuk dengan Google'),
                   ),
 
                   const SizedBox(height: AppSpacing.lg),
 
-                  // Tautan Bawah (Lupa kata sandi & Buat akun)
+                  // Tautan Bawah
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
@@ -260,19 +243,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () => context.go(AppRoutes.forgotPassword),
-                        child: const Text(
-                          'Lupa kata sandi?',
-                          style: TextStyle(color: studioOrange),
-                        ),
+                        child: const Text('Lupa kata sandi?', style: TextStyle(color: charcoalText, fontWeight: FontWeight.bold)),
                       ),
                       TextButton(
                         onPressed: isSubmitting
                             ? null
                             : () => context.go(AppRoutes.register),
-                        child: const Text(
-                          'Buat akun',
-                          style: TextStyle(color: studioOrange),
-                        ),
+                        child: const Text('Buat akun', style: TextStyle(color: charcoalText, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
