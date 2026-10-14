@@ -14,7 +14,9 @@ Isinya tidak boleh dianggap sudah selesai: periksa bagian "Status saat ini" lebi
 | `ios/Runner/GoogleService-Info.plist` | Belum ada | `Test-Path` = False (target iOS belum dikonfigurasi) |
 | Provider Email/Password & Google | Email/Password bekerja pada uji manual web; Google belum diuji | `flutter run -d chrome` membentuk sesi `signedIn` (Email/Password); Google butuh `GOOGLE_SERVER_CLIENT_ID` + SHA terdaftar |
 | SHA-1/SHA-256 Android | Belum diverifikasi | — |
-| `firebase/firestore.rules`, `firebase/storage.rules` | Belum ada | dikerjakan pada fase model/rules; rules Firestore **wajib** memuat blok `users/{uid}/cart_items` (keranjang Fase 4, hanya pemilik UID) sebelum penulisan keranjang dapat diuji runtime |
+| `firebase/storage.rules` | **Ada** (dibuat Fase 5), **belum dideploy** | `firebase.json` → `firebase/storage.rules`; `profiles/{uid}/**` hanya pemilik UID, `products/**`+`banners/**`+`creatives/**` hanya admin, wajib `image/*` ≤ 5 MB |
+| `firebase/firestore.rules` / `firestore.indexes.json` | Belum ada | dikerjakan pada fase model/rules; rules Firestore **wajib** memuat blok `users/{uid}/cart_items` (keranjang Fase 4, hanya pemilik UID) sebelum penulisan keranjang dapat diuji runtime |
+| `scripts/seed_sample_data.mjs` (Fase 5) | Ada, **belum dijalankan** | `node scripts/seed_sample_data.mjs --dry-run` lulus tanpa kredensial; `firebase-admin` belum dipasang sehingga penulisan dokumen belum dijalankan |
 | `--dart-define` nilai project | Belum diisi | lihat §3 |
 | `--dart-define=WHATSAPP_NUMBER` | **Belum diisi** (tidak ada nilai default/contoh) | selama kosong, tombol "Checkout via WhatsApp" nonaktif dan UI menjelaskan nomor belum dikonfigurasi (Fase 4) |
 | Login end-to-end | Sebagian | sesi Auth nyata terbentuk di web; penulisan `users/{uid}`, Google Sign-In, dan reset kata sandi belum diverifikasi |
@@ -139,10 +141,17 @@ divalidasi Firebase Authentication, dan role admin hanya berasal dari custom cla
 - Skrip pemberian custom claim (`scripts/grant_admin.mjs`, Firebase Admin SDK)
   **belum dibuat**; itu bagian dari fase dashboard admin. Skrip seperti itu hanya
   boleh dijalankan di lingkungan tepercaya dan tidak dari aplikasi Flutter.
-- `firebase/firestore.rules` dan `firebase/storage.rules` **belum ada** dan belum
-  dideploy. Sampai rules dibuat, dokumen `users/{uid}` hasil register/login dapat
-  gagal ditulis bila project memakai mode produksi (default deny). Aplikasi akan
-  menampilkan pesan peringatan yang jelas (bukan "sukses" palsu) pada kondisi itu.
+- `firebase/storage.rules` **sudah ada** (dibuat pada Fase 5) dan `firebase.json`
+  menunjuk berkas itu, tetapi **belum dideploy** dan bucket Storage belum dipastikan
+  aktif, sehingga unggah foto profil belum dapat diverifikasi runtime. Isinya:
+  `products/**`, `banners/**`, dan `creatives/**` hanya dapat ditulis admin
+  (`request.auth.token.admin == true`); `profiles/{uid}/**` hanya dapat ditulis
+  pemilik UID itu sendiri; setiap tulisan wajib `image/*` dan ≤ 5 MB; semua path lain
+  ditolak. Deploy dengan `firebase deploy --only storage`.
+- `firebase/firestore.rules` **belum ada** dan belum dideploy. Sampai rules dibuat,
+  dokumen `users/{uid}` hasil register/login dapat gagal ditulis bila project memakai
+  mode produksi (default deny). Aplikasi akan menampilkan pesan peringatan yang jelas
+  (bukan "sukses" palsu) pada kondisi itu.
 - Alasan konkret mengapa rules wajib sebelum uji runtime keranjang: Fase 4 menyimpan
   keranjang pada `users/{uid}/cart_items/{productId}` (satu dokumen per produk).
   Rules harus (a) mengizinkan baca/tulis **hanya** untuk pemilik UID
@@ -151,13 +160,44 @@ divalidasi Firebase Authentication, dan role admin hanya berasal dari custom cla
   penulisan keranjang berhenti dengan `permission-denied` dan tidak dapat diverifikasi.
 - Jangan commit service-account JSON, private key, atau file kredensial.
 
+## 4b. Seed konten Fase 5 (rate card & kreator)
+
+Script seed berada di `scripts/` dan memakai Firebase Admin SDK, jadi hanya dijalankan
+dari lingkungan tepercaya (bukan dari aplikasi Flutter):
+
+```bash
+npm --prefix scripts install                     # memasang firebase-admin (sekali)
+node scripts/seed_sample_data.mjs --dry-run      # memeriksa data tanpa kredensial
+node scripts/seed_sample_data.mjs --service-account=<path-service-account.json>
+# atau: GOOGLE_APPLICATION_CREDENTIALS=<path> node scripts/seed_sample_data.mjs
+```
+
+Isi yang ditulis (idempotent, aman dijalankan berulang):
+
+- `service_rates`: empat kelompok layanan pada `scripts/seed_config.json` dengan
+  `rateLabel: "CONTOH RATE — BELUM FINAL"`, `startingPrice: null`, `priceUnit: ""`,
+  `deliverables: []`, dan penanda `isSample: true` — halaman Portofolio akan menampilkan
+  label tersebut apa adanya sampai pemilik mengisi rate final.
+- `creatives`: dokumen pada `scripts/seed_config.json` (`ipan_ramadhan`,
+  `firas_fadly_a`). **Nama tampilan pada berkas itu perlu diverifikasi/diganti pemilik**;
+  `roleTitle`, `specialties`, `photoUrl`, dan `portfolioUrl` sengaja dikosongkan karena
+  script tidak boleh mengarang pengalaman, foto, atau URL orang. URL yang diisi wajib
+  `http`/`https` (divalidasi script), dan selama `portfolioUrl` kosong tombol
+  `Lihat Portofolio` di aplikasi nonaktif dengan penjelasan.
+
+Jangan commit service-account JSON; pola berkas itu sudah masuk `.gitignore`
+(`scripts/service-account*.json`).
+
 ## 5. Verifikasi yang bisa dijalankan sekarang
 
 ```bash
 dart format lib test     # dijalankan pada Fase 4: 115 file diperiksa, 4 diubah
-flutter analyze          # No issues found! (Fase 4)
-flutter test             # All tests passed! (226 test)
-flutter test test/features/cart test/core/utils   # All tests passed! (74 test, fokus keranjang)
+flutter analyze          # No issues found! (Fase 5)
+flutter test             # All tests passed! (273 test)
+flutter test test/core test/features/portfolio test/features/profile
+                         # All tests passed! (139 test, fokus Fase 5)
+node scripts/seed_sample_data.mjs --dry-run   # mencetak 4 rate card + 2 kreator,
+                         # tidak menulis dokumen dan tidak butuh kredensial
 flutter run -d chrome    # dijalankan: melewati `main()`, berhenti di #/login; uji
                          # manual di halaman yang sama berlanjut ke #/register
                          # lalu #/catalog → bootstrap web memakai bagian `web`
@@ -187,14 +227,20 @@ Yang **tidak** dibuktikan oleh uji manual di atas: penulisan dokumen `users/{uid
 Test yang tersedia tidak memerlukan kredensial: validator form, pemetaan pesan
 error, keputusan route guard, resolusi alias login, pemantauan sesi auth, form
 login/register, kontrak bootstrap Firebase (kode diagnostik + sumber konfigurasi),
-serta alur bootstrap → login → katalog memakai stream sesi palsu.
+alur bootstrap → login → katalog memakai stream sesi palsu, serta (Fase 5) halaman
+Portofolio & Layanan, pemetaan error Storage, validasi berkas gambar, dan alur
+Edit Profil termasuk kegagalan unggah/penulisan.
 
 Yang **belum** diverifikasi (butuh kredensial/uji manual di project Firebase):
 
 - register email/password sungguhan dan penulisan dokumen `users/{uid}`;
 - login email/password dan Google Sign-In end-to-end (termasuk ID token dari Google);
 - pengiriman email reset kata sandi;
-- aturan Firestore/Storage (rules belum dibuat dan belum dideploy), termasuk blok
+- **unggah foto profil ke Storage** (butuh Storage aktif + `firebase deploy --only storage`);
+  yang baru terbukti adalah perilakunya di test: berkas > 5 MB / bukan gambar ditolak
+  sebelum diunggah, dan kegagalan unggah tidak mengubah `photoUrl` lama;
+- **pembukaan tautan portofolio kreator** pada perangkat (butuh `portfolioUrl` asli);
+- aturan Firestore/Storage (Storage Rules baru dibuat, **belum** dideploy), termasuk blok
   `users/{uid}/cart_items` yang menentukan apakah keranjang dapat ditulis;
 - penulisan/penghapusan `users/{uid}/cart_items` beserta perilaku realtime-nya;
 - checkout WhatsApp dengan nomor tujuan nyata (memerlukan `WHATSAPP_NUMBER`, §3) dan
@@ -210,7 +256,7 @@ Daftar lengkap ada di `IMPLEMENTATION_PLAN.md` §3. Yang paling dekat dengan fas
 3. Provider login yang diaktifkan (Email/Password, Google) di Firebase Console + SHA-1/SHA-256 Android. Project Firebase dan hasil `flutterfire configure` sudah selesai (lihat §0).
 4. Keputusan `applicationId` Android (unik atau tetap `com.example.rent_camera_app`).
 5. Nomor WhatsApp tujuan final (`WHATSAPP_NUMBER`) — selama kosong, checkout keranjang tetap nonaktif (Fase 4).
-6. Konten Fase 5 yang belum ada: empat rate card layanan (judul, deskripsi, `rateLabel`, `startingPrice`, `priceUnit`, `deliverables`), dua kreator (nama, `roleTitle`, spesialisasi, foto, `portfolioUrl`), foto/aset milik pemilik, serta kepastian paket billing Firebase Storage untuk upload foto profil.
+6. Konten Fase 5 yang belum ada: empat rate card layanan (judul, deskripsi, `rateLabel`, `startingPrice`, `priceUnit`, `deliverables`), dua kreator (nama, `roleTitle`, spesialisasi, foto, `portfolioUrl`), serta foto/aset milik pemilik. Script seed dan berkas konfigurasinya sudah tersedia (`scripts/seed_sample_data.mjs`, `scripts/seed_config.json`, lihat §4b), tetapi **belum dijalankan** karena `firebase-admin` belum dipasang; nama tampilan kreator pada berkas konfigurasi itu perlu diverifikasi pemilik. Kepastian paket billing Firebase Storage untuk upload foto profil juga masih perlu dipastikan (`IMPLEMENTATION_PLAN.md` blocker #14).
 
 ## 7. Penyelesaian blocker
 

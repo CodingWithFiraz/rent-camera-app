@@ -61,8 +61,12 @@ Future<void> _fillForm(
   );
 }
 
+/// Desain ulang layar register memakai `ElevatedButton` bergaya sendiri (bukan
+/// `AppPrimaryButton` yang membungkus `FilledButton`), sehingga finder harus
+/// memakai tipe tombol yang benar-benar dipakai layar ini — sejalan dengan
+/// `test/features/auth/login_screen_test.dart`.
 Future<void> _tapSubmit(WidgetTester tester) async {
-  final button = find.widgetWithText(FilledButton, 'Daftar');
+  final button = find.widgetWithText(ElevatedButton, 'Daftar');
   await tester.ensureVisible(button);
   await tester.pumpAndSettle();
   await tester.tap(button);

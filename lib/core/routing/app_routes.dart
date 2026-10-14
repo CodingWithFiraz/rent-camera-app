@@ -13,14 +13,17 @@ abstract final class AppRoutes {
   /// Pola route detail produk; path nyatanya dibentuk [productDetailPath].
   static const String productDetail = '/product/:productId';
 
-  /// Halaman Portofolio & Layanan (isi penuh dikerjakan pada Fase 5).
+  /// Halaman Portofolio & Layanan (`lib/features/portfolio`).
   static const String portfolio = '/portfolio';
 
   /// Halaman Keranjang (isi penuh dikerjakan pada Fase 4).
   static const String cart = '/cart';
 
-  /// Halaman Profil pengguna (isi penuh dikerjakan pada Fase 5).
+  /// Halaman Profil pengguna (`lib/features/profile`).
   static const String profile = '/profile';
+
+  /// Halaman Edit Profil (nama, nomor telepon, foto).
+  static const String editProfile = '/profile/edit';
 
   /// Ditampilkan bila Firebase belum dikonfigurasi.
   static const String setupRequired = '/setup-required';
