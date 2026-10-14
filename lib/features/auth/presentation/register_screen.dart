@@ -74,9 +74,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     const Color mutedGray = Color(0xFF4A4A4A);
     const Color customOrangeButton = Color.fromARGB(255, 255, 94, 0);
 
-    // Definisi Warna yang disamakan dengan Login & Lupa Kata Sandi
-
-
     final authState = ref.watch(authControllerProvider);
     final isSubmitting = authState.isSubmitting;
     final errorMessage = authState.errorMessage;
@@ -95,7 +92,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Colors.black.withOpacity(0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -128,7 +125,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const Text(
                     'Akun dipakai untuk menyimpan keranjang dan permintaan sewa Anda.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: mutedGray, fontSize: 14),
+                    style: TextStyle(
+                      color: mutedGray,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -145,9 +145,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         children: <Widget>[
                           Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: customOrangeButton,
-                              ),
+                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
                             ),
                             child: AppTextField(
                               controller: _nameController,
@@ -162,9 +160,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: customOrangeButton,
-                              ),
+                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
                             ),
                             child: AppTextField(
                               controller: _emailController,
@@ -172,18 +168,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               enabled: !isSubmitting,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[
-                                AutofillHints.email,
-                              ],
+                              autofillHints: const <String>[AutofillHints.email],
                               validator: Validators.email,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: customOrangeButton,
-                              ),
+                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
                             ),
                             child: AppTextField(
                               controller: _passwordController,
@@ -191,20 +183,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               obscureText: true,
                               enabled: !isSubmitting,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[
-                                AutofillHints.newPassword,
-                              ],
+                              autofillHints: const <String>[AutofillHints.newPassword],
                               validator: Validators.password,
-                              helperText:
-                                  'Minimal ${Validators.minPasswordLength} karakter.',
+                              helperText: 'Minimal ${Validators.minPasswordLength} karakter.',
                             ),
                           ),
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: customOrangeButton,
-                              ),
+                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
                             ),
                             child: AppTextField(
                               controller: _confirmationController,
@@ -212,11 +199,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               obscureText: true,
                               enabled: !isSubmitting,
                               textInputAction: TextInputAction.done,
-                              validator: (value) =>
-                                  Validators.passwordConfirmation(
-                                    value,
-                                    _passwordController.text,
-                                  ),
+                              validator: (value) => Validators.passwordConfirmation(
+                                value,
+                                _passwordController.text,
+                              ),
                               onFieldSubmitted: (_) => _submit(),
                             ),
                           ),
@@ -248,11 +234,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           )
                         : const Text(
                             'Daftar',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Color.fromARGB(255, 255, 255, 255),
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color.fromARGB(255, 255, 255, 255)),
                           ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
