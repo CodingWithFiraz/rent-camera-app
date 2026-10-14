@@ -78,6 +78,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ],
         Form(
           key: _formKey,
+                    child: Theme(
+                      data: ThemeData.light().copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: customOrangeButton,
+                        ),
+                      ),
           child: AppTextField(
             controller: _emailController,
             label: 'Email',
