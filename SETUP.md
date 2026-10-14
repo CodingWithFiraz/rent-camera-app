@@ -14,8 +14,9 @@ Isinya tidak boleh dianggap sudah selesai: periksa bagian "Status saat ini" lebi
 | `ios/Runner/GoogleService-Info.plist` | Belum ada | `Test-Path` = False (target iOS belum dikonfigurasi) |
 | Provider Email/Password & Google | Email/Password bekerja pada uji manual web; Google belum diuji | `flutter run -d chrome` membentuk sesi `signedIn` (Email/Password); Google butuh `GOOGLE_SERVER_CLIENT_ID` + SHA terdaftar |
 | SHA-1/SHA-256 Android | Belum diverifikasi | — |
-| `firebase/firestore.rules`, `firebase/storage.rules` | Belum ada | dikerjakan pada fase model/rules |
+| `firebase/firestore.rules`, `firebase/storage.rules` | Belum ada | dikerjakan pada fase model/rules; rules Firestore **wajib** memuat blok `users/{uid}/cart_items` (keranjang Fase 4, hanya pemilik UID) sebelum penulisan keranjang dapat diuji runtime |
 | `--dart-define` nilai project | Belum diisi | lihat §3 |
+| `--dart-define=WHATSAPP_NUMBER` | **Belum diisi** (tidak ada nilai default/contoh) | selama kosong, tombol "Checkout via WhatsApp" nonaktif dan UI menjelaskan nomor belum dikonfigurasi (Fase 4) |
 | Login end-to-end | Sebagian | sesi Auth nyata terbentuk di web; penulisan `users/{uid}`, Google Sign-In, dan reset kata sandi belum diverifikasi |
 
 Karena itu `lib/core/firebase/firebase_bootstrap.dart` memakai opsi eksplisit dari
@@ -112,14 +113,22 @@ Semua nilai milik project dipasok saat build/run, bukan ditulis di source code
 | `ADMIN_EMAIL` | opsional | Email akun admin yang dipetakan dari alias | **kosong** → alias ditolak |
 | `GOOGLE_SERVER_CLIENT_ID` | untuk Google Sign-In | Server (web) client ID | **kosong** |
 | `GOOGLE_IOS_CLIENT_ID` | untuk iOS | Client ID OAuth iOS | **kosong** |
+| `WHATSAPP_NUMBER` | wajib untuk checkout | Nomor tujuan permintaan sewa. Format internasional: kode negara + nomor, **tanpa** `+`, spasi, tanda baca, dan tanpa awalan `0` (8–15 digit). Dipakai hanya oleh `AppConfig.whatsappNumber` untuk membangun tautan `https://wa.me/<nomor>` | **kosong** → tombol checkout nonaktif |
 
 Contoh menjalankan aplikasi:
 
 ```bash
 flutter run --dart-define=APP_NAME="Nama Brand" \
   --dart-define=ADMIN_EMAIL=<email-admin-yang-dikonfigurasi> \
-  --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com \
+  --dart-define=WHATSAPP_NUMBER=<kode-negara><nomor-tujuan>
 ```
+
+Catatan nomor WhatsApp: nomor hanya boleh berasal dari pemilik project. Aplikasi tidak
+punya nomor contoh/default, memvalidasi digit (8–15 digit, awalan `0` ditolak), dan
+menonaktifkan checkout selama nilai ini kosong. Checkout **bukan** booking atau
+pembayaran: aplikasi hanya menyusun pesan permintaan sewa, membaca ulang harga/stok
+produk dari Firestore sebelum menyusun pesan, dan tidak mengunci/mengurangi stok.
 
 Catatan keamanan: alias `admin` **bukan** bypass autentikasi. Password tetap
 divalidasi Firebase Authentication, dan role admin hanya berasal dari custom claim
@@ -134,14 +143,21 @@ divalidasi Firebase Authentication, dan role admin hanya berasal dari custom cla
   dideploy. Sampai rules dibuat, dokumen `users/{uid}` hasil register/login dapat
   gagal ditulis bila project memakai mode produksi (default deny). Aplikasi akan
   menampilkan pesan peringatan yang jelas (bukan "sukses" palsu) pada kondisi itu.
+- Alasan konkret mengapa rules wajib sebelum uji runtime keranjang: Fase 4 menyimpan
+  keranjang pada `users/{uid}/cart_items/{productId}` (satu dokumen per produk).
+  Rules harus (a) mengizinkan baca/tulis **hanya** untuk pemilik UID
+  (`request.auth.uid == uid`), (b) menolak perubahan `role`/claim dari klien pada
+  `users/{uid}`, dan (c) membuat `products` hanya-baca bagi pengguna biasa. Tanpa itu
+  penulisan keranjang berhenti dengan `permission-denied` dan tidak dapat diverifikasi.
 - Jangan commit service-account JSON, private key, atau file kredensial.
 
 ## 5. Verifikasi yang bisa dijalankan sekarang
 
 ```bash
-dart format lib test     # 46 file diperiksa, 0 diubah
-flutter analyze          # No issues found! (ran in 7.4s)
-flutter test             # All tests passed! (71 test)
+dart format lib test     # dijalankan pada Fase 4: 115 file diperiksa, 4 diubah
+flutter analyze          # No issues found! (Fase 4)
+flutter test             # All tests passed! (226 test)
+flutter test test/features/cart test/core/utils   # All tests passed! (74 test, fokus keranjang)
 flutter run -d chrome    # dijalankan: melewati `main()`, berhenti di #/login; uji
                          # manual di halaman yang sama berlanjut ke #/register
                          # lalu #/catalog → bootstrap web memakai bagian `web`
@@ -178,7 +194,12 @@ Yang **belum** diverifikasi (butuh kredensial/uji manual di project Firebase):
 - register email/password sungguhan dan penulisan dokumen `users/{uid}`;
 - login email/password dan Google Sign-In end-to-end (termasuk ID token dari Google);
 - pengiriman email reset kata sandi;
-- aturan Firestore/Storage (rules belum dibuat dan belum dideploy).
+- aturan Firestore/Storage (rules belum dibuat dan belum dideploy), termasuk blok
+  `users/{uid}/cart_items` yang menentukan apakah keranjang dapat ditulis;
+- penulisan/penghapusan `users/{uid}/cart_items` beserta perilaku realtime-nya;
+- checkout WhatsApp dengan nomor tujuan nyata (memerlukan `WHATSAPP_NUMBER`, §3) dan
+  pembukaan tautan `wa.me` pada perangkat/emulator;
+- uji manual halaman keranjang di emulator/perangkat (Katalog → Detail → Sewa → Keranjang).
 
 ## 6. Aset dan keputusan yang masih ditunggu pemilik
 
@@ -188,6 +209,8 @@ Daftar lengkap ada di `IMPLEMENTATION_PLAN.md` §3. Yang paling dekat dengan fas
 2. Email admin yang dikontrol pemilik (`ADMIN_EMAIL`) dan metode pemberian claim.
 3. Provider login yang diaktifkan (Email/Password, Google) di Firebase Console + SHA-1/SHA-256 Android. Project Firebase dan hasil `flutterfire configure` sudah selesai (lihat §0).
 4. Keputusan `applicationId` Android (unik atau tetap `com.example.rent_camera_app`).
+5. Nomor WhatsApp tujuan final (`WHATSAPP_NUMBER`) — selama kosong, checkout keranjang tetap nonaktif (Fase 4).
+6. Konten Fase 5 yang belum ada: empat rate card layanan (judul, deskripsi, `rateLabel`, `startingPrice`, `priceUnit`, `deliverables`), dua kreator (nama, `roleTitle`, spesialisasi, foto, `portfolioUrl`), foto/aset milik pemilik, serta kepastian paket billing Firebase Storage untuk upload foto profil.
 
 ## 7. Penyelesaian blocker
 
@@ -199,4 +222,7 @@ Daftar lengkap ada di `IMPLEMENTATION_PLAN.md` §3. Yang paling dekat dengan fas
 | `flutterfire` tidak dikenali | pakai `dart pub global run flutterfire_cli:flutterfire` atau tambahkan folder bin Pub global ke PATH |
 | Google Sign-In gagal dengan pesan konfigurasi | isi `GOOGLE_SERVER_CLIENT_ID`, daftarkan SHA-1/SHA-256, aktifkan provider Google |
 | Dokumen profil gagal disinkronkan | deploy Firestore Security Rules pada fase rules; aplikasi menampilkan peringatan ini apa adanya |
+| Tombol "Checkout via WhatsApp" nonaktif dan menyebut nomor belum dikonfigurasi | jalankan aplikasi dengan `--dart-define=WHATSAPP_NUMBER=<kode-negara><nomor>` (§3) setelah pemilik menentukan nomor final (`IMPLEMENTATION_PLAN.md` blocker #2). Aplikasi sengaja tanpa nomor default |
+| Penulisan/hapus item keranjang gagal dengan `permission-denied` | pastikan `firebase/firestore.rules` sudah dibuat dan dideploy dengan blok `users/{uid}/cart_items` untuk pemilik UID (§4) |
+| Item keranjang tampak "berhasil ditambahkan" tetapi tidak muncul | periksa apakah sesi login valid pada UID yang sama (keranjang dibatasi UID) dan apakah rules mengizinkan baca untuk UID tersebut; aplikasi hanya menampilkan sukses bila penulisan Firestore benar-benar selesai |
 

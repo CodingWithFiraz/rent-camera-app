@@ -9,6 +9,7 @@ import '../../features/auth/presentation/firebase_setup_required_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/cart/presentation/cart_screen.dart';
 import '../../features/catalog/presentation/catalog_screen.dart';
 import '../../features/catalog/presentation/product_detail_screen.dart';
 import '../firebase/firebase_providers.dart';
@@ -85,13 +86,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.cart,
         name: 'cart',
         builder: (BuildContext context, GoRouterState state) =>
-            const UpcomingFeatureScreen(
-              title: 'Keranjang',
-              phaseLabel: 'Fase 4 — Keranjang & Checkout WhatsApp',
-              message:
-                  'Daftar alat, pengaturan jumlah, dan checkout WhatsApp belum '
-                  'dibangun, sehingga keranjang belum dapat dibuka.',
-            ),
+            const CartScreen(),
       ),
       GoRoute(
         path: AppRoutes.portfolio,
