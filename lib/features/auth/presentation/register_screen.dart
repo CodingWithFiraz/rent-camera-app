@@ -74,6 +74,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     const Color mutedGray = Color(0xFF4A4A4A);
     const Color customOrangeButton = Color.fromARGB(255, 255, 94, 0);
 
+    // Definisi Warna yang disamakan dengan Login & Lupa Kata Sandi
+    const Color limeGreenBox = Color(0xFFBCEE46);
+    const Color charcoalText = Color(0xFF1E1E1E);
+    const Color mutedGray = Color(0xFF4A4A4A);
+    const Color customOrangeButton = Color.fromARGB(255, 255, 94, 0);
+
     final authState = ref.watch(authControllerProvider);
     final isSubmitting = authState.isSubmitting;
     final errorMessage = authState.errorMessage;

@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Colors.black.withOpacity(0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -130,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: mutedGray, fontSize: 14),
+                    style: TextStyle(color: shutterGray, fontSize: 14),
                   ),
                   const SizedBox(height: 24),
 
@@ -146,9 +146,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
                           Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: customOrangeButton,
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: studioOrange,
                               ),
                             ),
                             child: AppTextField(
@@ -157,14 +157,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               enabled: !isSubmitting,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[
-                                AutofillHints.email,
-                              ],
+                              autofillHints: const <String>[AutofillHints.email],
                               validator: (value) => Validators.loginIdentifier(
                                 value,
                                 adminAlias: AppConfig.adminLoginAlias,
-                                isAdminAliasConfigured:
-                                    AppConfig.isAdminAliasConfigured,
+                                isAdminAliasConfigured: AppConfig.isAdminAliasConfigured,
                               ),
                               helperText: AppConfig.isAdminAliasConfigured
                                   ? 'Email akun, atau alias "${AppConfig.adminLoginAlias}".'
@@ -173,9 +170,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: customOrangeButton,
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: studioOrange,
                               ),
                             ),
                             child: AppTextField(
@@ -184,9 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               obscureText: true,
                               enabled: !isSubmitting,
                               textInputAction: TextInputAction.done,
-                              autofillHints: const <String>[
-                                AutofillHints.password,
-                              ],
+                              autofillHints: const <String>[AutofillHints.password],
                               validator: Validators.password,
                               onFieldSubmitted: (_) => _submit(),
                             ),
@@ -222,7 +217,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: Color.fromARGB(255, 255, 255, 255),
                             ),
                           ),
                   ),
@@ -242,7 +236,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     icon: const Icon(
                       Icons.account_circle_outlined,
                       size: 18,
-                      color: charcoalText,
+                      color: studioOrange,
                     ),
                     label: const Text('Masuk dengan Google'),
                   ),
@@ -259,10 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : () => context.go(AppRoutes.forgotPassword),
                         child: const Text(
                           'Lupa kata sandi?',
-                          style: TextStyle(
-                            color: charcoalText,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: studioOrange),
                         ),
                       ),
                       TextButton(
@@ -271,10 +262,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : () => context.go(AppRoutes.register),
                         child: const Text(
                           'Buat akun',
-                          style: TextStyle(
-                            color: charcoalText,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: studioOrange),
                         ),
                       ),
                     ],
