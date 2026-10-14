@@ -213,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           )
                         : const Text(
                             'Masuk',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: charcoalText),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color.fromARGB(255, 252, 251, 251)),
                           ),
                   ),
                   const SizedBox(height: AppSpacing.md),
