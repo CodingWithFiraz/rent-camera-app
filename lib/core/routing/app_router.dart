@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/upcoming_feature_screen.dart';
 import '../../features/auth/presentation/auth_gate.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/auth/presentation/firebase_setup_required_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
-import '../../features/catalog/presentation/catalog_placeholder_screen.dart';
+import '../../features/catalog/presentation/catalog_screen.dart';
+import '../../features/catalog/presentation/product_detail_screen.dart';
 import '../firebase/firebase_providers.dart';
 import '../widgets/app_error_state.dart';
 import 'app_routes.dart';
@@ -69,7 +71,51 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.catalog,
         name: 'catalog',
         builder: (BuildContext context, GoRouterState state) =>
-            const CatalogPlaceholderScreen(),
+            const CatalogScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.productDetail,
+        name: 'productDetail',
+        builder: (BuildContext context, GoRouterState state) =>
+            ProductDetailScreen(
+              productId: state.pathParameters['productId'] ?? '',
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.cart,
+        name: 'cart',
+        builder: (BuildContext context, GoRouterState state) =>
+            const UpcomingFeatureScreen(
+              title: 'Keranjang',
+              phaseLabel: 'Fase 4 — Keranjang & Checkout WhatsApp',
+              message:
+                  'Daftar alat, pengaturan jumlah, dan checkout WhatsApp belum '
+                  'dibangun, sehingga keranjang belum dapat dibuka.',
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.portfolio,
+        name: 'portfolio',
+        builder: (BuildContext context, GoRouterState state) =>
+            const UpcomingFeatureScreen(
+              title: 'Portofolio & Layanan',
+              phaseLabel: 'Fase 5 — Portofolio, Rate Card & Profil',
+              message:
+                  'Rate card layanan dan kartu kreator belum dibangun, '
+                  'sehingga halaman ini belum menampilkan data apa pun.',
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        name: 'profile',
+        builder: (BuildContext context, GoRouterState state) =>
+            const UpcomingFeatureScreen(
+              title: 'Profil',
+              phaseLabel: 'Fase 5 — Portofolio, Rate Card & Profil',
+              message:
+                  'Pengaturan nama, nomor telepon, dan foto profil belum '
+                  'dibangun.',
+            ),
       ),
     ],
   );

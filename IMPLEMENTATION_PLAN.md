@@ -22,8 +22,8 @@ Sumber kebenaran:
 |---|---|---|
 | 0 | Audit repository & implementation plan | Selesai (dokumen ini) |
 | 1 | Fondasi aplikasi & autentikasi | Partially complete — kode & test selesai; verifikasi runtime terblokir konfigurasi Firebase |
-| 2 | Model, repository, schema, security rules, data setup | Not started |
-| 3 | Katalog, carousel, search/filter, detail produk, realtime | Not started |
+| 2 | Model, repository, schema, security rules, data setup | Partially complete — kode & test selesai; rules/index/seed belum dideploy & belum diuji emulator |
+| 3 | Katalog, carousel, search/filter, detail produk, realtime | Partially complete — kode & test selesai (`flutter test` 175 lulus); verifikasi runtime Firestore/banner/foto terblokir |
 | 4 | Keranjang, validasi harga/stok, kalkulasi, WhatsApp | Not started |
 | 5 | Portofolio/rate card & profil pengguna | Not started |
 | 6 | Dashboard admin & CRUD produk | Not started |
@@ -170,7 +170,7 @@ Setiap fase hanya dikerjakan pada task terpisah. Kolom "File/modul" bersifat per
 
 ### Fase 3 — Katalog, carousel, search/filter, detail produk, realtime
 
-- **Status:** `Not started`
+- **Status:** `Partially complete` — seluruh kode halaman katalog, carousel, search/filter, grid produk realtime, dan halaman detail produk beserta test widget/domain sudah ada; `dart format` (`105 file, 0 changed`), `flutter analyze` (`No issues found!`), dan `flutter test` (`All tests passed!`, 175 test pada 26 file) lulus. Yang **belum**: verifikasi runtime terhadap Firestore nyata (isi katalog, realtime, tiga aset banner, foto produk) karena project Firebase belum ada dan seed belum ditulis, serta uji manual di emulator/perangkat (lihat log di bawah).
 - **Target:** halaman Catalog/Home sebagai tujuan pertama setelah login, carousel tiga banner (satu menuju Portofolio), search + filter kategori/brand yang dapat digabungkan, grid/list produk realtime, dan Product Detail.
 - **Dependency:** Fase 2 (repository & model katalog), Fase 1 (routing/shell).
 - **File/modul yang mungkin disentuh:** `lib/core/widgets/{app_scaffold,app_drawer}.dart`, `lib/features/catalog/presentation/{catalog_screen,product_detail_screen}.dart`, `lib/features/catalog/presentation/widgets/{product_card,catalog_filters,banner_carousel}.dart`, `lib/features/catalog/presentation/catalog_providers.dart`, `lib/features/catalog/data/{product_repository,category_repository,banner_repository}.dart`, `test/` (filter/katalog logic yang dapat diuji), seed data kategori/banner bila diperlukan.
@@ -185,6 +185,21 @@ Setiap fase hanya dikerjakan pada task terpisah. Kolom "File/modul" bersifat per
   - Layout aman pada layar kecil (tanpa overflow), safe area, teks panjang.
 - **Blocker eksternal:** tiga aset banner + target banner (minimal satu ke Portofolio), data kategori/produk awal atau seed SAMPLE; kesepakatan label periode harga (lihat bagian keputusan pemilik).
 - **Verifikasi:** `dart format`, `flutter analyze`, `flutter test`, uji manual di emulator; update status fase; `git diff --check` bila repo Git ada.
+
+**Log implementasi Fase 3 (task ini).**
+
+- Halaman katalog (`lib/features/catalog/presentation/catalog_screen.dart`) menjadi tujuan pertama setelah login (route `/catalog`; `productDetail` = `/product/:productId` di `lib/core/routing/app_router.dart`). Isi: carousel banner, kolom pencarian, keterangan keadaan kategori, baris filter, judul "Katalog alat", dan bagian daftar produk. Semua data dibaca lewat provider katalog (`catalog_providers.dart`) — tidak ada query Firestore di widget.
+- Carousel: `catalogBannerSelectionProvider` + `BannerSelection` (`domain/banner_selection.dart`) memotong maksimal tiga banner aktif dan menandai slide tanpa `targetType` valid (tidak dapat ditekan, dilaporkan lewat `CatalogSectionNotice`). Slide `portfolio` membuka `/portfolio`, `category` menyetel filter kategori, `externalUrl` dibuka lewat `ExternalLauncher` yang memvalidasi URL (banner tanpa URL valid → keterangan, bukan URL karangan). Banner belum dikonfigurasi → bidang keterangan jujur, bukan gambar contoh.
+- Carousel memakai satu `AspectRatio` 16/9 (`BannerCarousel.slideAspectRatio`) agar tinggi slide konsisten, dengan indikator posisi dan auto-play yang berhenti bila animasi sistem dimatikan (aksesibilitas).
+- Search + filter: `CatalogFilter` (`domain/catalog_filter.dart`) menggabungkan kata kunci + kategori + brand; daftar brand diturunkan dari produk aktif kategori terpilih (`CatalogBrands`), bukan daftar hardcoded; tombol hapus filter juga mengosongkan kolom pencarian supaya teks di layar tidak menyimpang dari kriteria.
+- Produk: `activeProductsProvider` memakai `ProductRepository.watchActiveProducts` (stream dengan filter `isActive == true`), sehingga perubahan admin diharapkan tercermin tanpa restart; `catalogProductsProvider` meneruskan `AsyncValue` apa adanya. Grid responsif 2/3/4 kolom (`_ProductGrid.columnCountFor`) berisi `ProductCard` (foto, nama, brand, harga + periode eksplisit), dengan keadaan memuat/error + "Coba lagi"/katalog kosong/hasil filter kosong yang dibedakan.
+- Detail produk (`product_detail_screen.dart`): foto utama, nama, brand, nama kategori (ID dokumen apa adanya bila kategori belum termuat), blok harga dengan satuan periode **hanya** bila dokumen menetapkannya (jika tidak: keterangan "Satuan periode harga belum ditetapkan admin" — tidak mengarang "/hari"), stok, deskripsi, pemilih jumlah dibatasi stok, dan aksi "Sewa" yang membaca ulang produk dari Firestore lalu menulis lewat `CartRepository.addProduct` (tanpa logika keranjang duplikat di widget). Keadaan memuat, error + "Coba lagi", produk tidak ditemukan, stok habis, dan produk diarsipkan ditangani.
+- App bar katalog & detail produk memakai `CatalogAppBarActions` yang sama: penanda jumlah keranjang dari `cartItemCountProvider` (disembunyikan saat 0) dan ikon profil; drawer `CatalogDrawer` membawa kategori ke filter yang sama.
+- Test baru/perluasan: `test/features/catalog/{catalog_screen_test,catalog_products_section_test,product_detail_screen_test,banner_carousel_test,banner_selection_test,catalog_filter_test,product_card_test,price_display_test}.dart` — termasuk tata letak layar sempit 320×600 dengan teks panjang, grid 2/3/4 kolom, batas pemilih jumlah oleh stok, dan kegagalan memuat yang menampilkan pesan + tombol ulangi.
+- Bug/test yang ditemukan dan diperbaiki saat verifikasi ini: (1) `find.byTooltip` mengembalikan `RawTooltip` sehingga cast ke `IconButton` gagal → test memakai `find.widgetWithIcon(IconButton, Icons.add)`; (2) pemeriksaan jumlah kolom pada 1200×800 tidak menemukan `GridView` karena carousel 16/9 setinggi ±657 px mendorong grid ke luar viewport → pengujian responsivitas dipindah ke `catalog_products_section_test.dart` (tiga lebar layar); (3) test error memakai `Future.error` yang sudah gagal sebelum provider berlangganan sehingga dilaporkan sebagai uncaught error oleh zone pengujian → diganti `Completer` yang gagal setelah halaman terbuka, sekaligus memeriksa keadaan memuat; (4) keterangan stok berada di bawah lipatan layar 320×600 → digulir dengan `scrollUntilVisible`.
+- Blocker: `lib/firebase_options.dart`/project Firebase belum ada sehingga katalog nyata, perilaku realtime, kontrak tiga banner, dan foto produk belum dapat diverifikasi runtime; seed belum ditulis; uji manual di emulator belum dijalankan. Karena itu kriteria "tiga banner aktif dari data nyata" dan "perubahan admin tercermin tanpa restart" baru terbukti secara kode/unit test, belum runtime.
+- Cakupan yang belum diuji: `ProductRepository.watchActiveProducts`/`BannerRepository` belum diuji terhadap Firestore (butuh Firestore palsu atau emulator, di luar dependensi project ini).
+- Fase berikutnya setelah Fase 3: Fase 4 — Keranjang, validasi harga/stok, kalkulasi, WhatsApp.
 
 ### Fase 4 — Keranjang, validasi harga/stok, kalkulasi, WhatsApp
 
@@ -303,7 +318,7 @@ Belum dikerjakan pada fase mana pun di atas, kecuali diminta eksplisit oleh pemi
 
 ## 6. Langkah berikutnya
 
-- Prompt yang harus dijalankan berikutnya: **Prompt Fase 2 — Model, repository, schema, security rules, dan data setup** (bagian D pada `docs/PROMPT_CLINE_BERTAHAP.md`), pada task terpisah.
-- Sebelum Fase 2 berjalan, idealnya pemilik menyiapkan: project Firebase + `flutterfire configure`, aktivasi provider Email/Password & Google, SHA keys Android, platform `android-36`, JDK pada `JAVA_HOME`, dan nama aplikasi/brand. Langkah detailnya ada di `SETUP.md`.
-- Setelah Fase 1 selesai: review hasil (`flutter analyze`, test, bukti manual), buat checkpoint Git, baru lanjut Fase 2.
+- Prompt yang harus dijalankan berikutnya: **Prompt Fase 4 — Keranjang, validasi harga/stok, kalkulasi, dan permintaan sewa via WhatsApp** (bagian D pada `docs/PROMPT_CLINE_BERTAHAP.md`), pada task terpisah. Fase 1–3 sudah selesai dari sisi kode (`flutter analyze` bersih, `flutter test` 175 lulus); Fase 2 & 3 berstatus `Partially complete` karena verifikasi runtime Firebase belum bisa dijalankan.
+- Sebelum Fase 4 berjalan, pemilik perlu menyiapkan (lihat `SETUP.md`): project Firebase + `flutterfire configure` (`lib/firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`), aktivasi provider Email/Password & Google, SHA keys Android, lalu penulisan seed `scripts/seed_sample_data.mjs` supaya katalog dan banner dapat diverifikasi runtime. Nomor WhatsApp internasional (blocker #2) juga wajib ada sebelum checkout WhatsApp diuji.
+- Verifikasi runtime yang masih tertunda dari Fase 3: tiga banner aktif dari Firestore (satu menuju Portofolio), produk hanya tampil bila `isActive == true`, perubahan data admin tercermin tanpa restart, foto produk nyata, serta uji manual di emulator/perangkat.
 

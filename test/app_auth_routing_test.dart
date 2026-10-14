@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Banner;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rent_camera_app/app.dart';
 import 'package:rent_camera_app/core/firebase/firebase_bootstrap.dart';
@@ -9,12 +10,34 @@ import 'package:rent_camera_app/core/firebase/firebase_providers.dart';
 import 'package:rent_camera_app/features/auth/domain/auth_user.dart';
 import 'package:rent_camera_app/features/auth/presentation/auth_providers.dart';
 import 'package:rent_camera_app/features/auth/presentation/auth_session_notifier.dart';
+import 'package:rent_camera_app/features/catalog/domain/banner.dart';
+import 'package:rent_camera_app/features/catalog/domain/banner_selection.dart';
+import 'package:rent_camera_app/features/catalog/domain/category.dart';
+import 'package:rent_camera_app/features/catalog/domain/product.dart';
+import 'package:rent_camera_app/features/catalog/presentation/catalog_providers.dart';
+import 'package:rent_camera_app/features/catalog/presentation/catalog_screen.dart';
 
 /// Test alur aplikasi: bootstrap Firebase dan route guard autentikasi.
 ///
 /// Test ini tidak membutuhkan kredensial: `FirebaseAuth` tidak pernah
-/// diinstansiasi karena sesi disuntikkan lewat stream palsu.
+/// diinstansiasi karena sesi disuntikkan lewat stream palsu, dan data katalog
+/// diisi lewat override provider sehingga tidak ada permintaan Firestore.
 void main() {
+  /// Override data katalog dengan daftar kosong.
+  ///
+  /// Route katalog kini menampilkan halaman katalog sungguhan; tanpa override
+  /// ini test akan menyentuh Firestore yang tidak tersedia pada test.
+  List<Override> catalogOverrides() => <Override>[
+    activeCategoriesProvider.overrideWith(
+      (Ref ref) => Stream<List<Category>>.value(const <Category>[]),
+    ),
+    catalogBannerSelectionProvider.overrideWithValue(
+      AsyncValue<BannerSelection>.data(BannerSelection.from(const <Banner>[])),
+    ),
+    catalogProductsProvider.overrideWithValue(
+      const AsyncValue<List<Product>>.data(<Product>[]),
+    ),
+  ];
   testWidgets(
     'Firebase belum dikonfigurasi: layar setup ditampilkan, bukan form',
     (WidgetTester tester) async {
@@ -59,7 +82,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(FilledButton, 'Masuk'), findsOneWidget);
-    expect(find.text('Katalog belum dibangun'), findsNothing);
+    expect(find.byType(CatalogScreen), findsNothing);
   });
 
   testWidgets('sudah login: pengguna diarahkan ke route katalog', (
@@ -72,11 +95,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: <Override>[
           firebaseBootstrapProvider.overrideWithValue(
             const FirebaseBootstrapStatus.configured(),
           ),
           authSessionNotifierProvider.overrideWithValue(session),
+          ...catalogOverrides(),
         ],
         child: const RentCameraApp(),
       ),
@@ -85,7 +109,8 @@ void main() {
     controller.add(const AuthUser(uid: 'uid-1', displayName: 'Nama Uji'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Katalog belum dibangun'), findsOneWidget);
-    expect(find.text('Nama Uji'), findsOneWidget);
+    expect(find.byType(CatalogScreen), findsOneWidget);
+    expect(find.text('Katalog masih kosong'), findsOneWidget);
+    expect(find.text('Katalog belum dibangun'), findsNothing);
   });
 }
