@@ -205,7 +205,7 @@ class CatalogFaqSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: limeGreenBox.withOpacity(0.2),
+        color: limeGreenBox.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: limeGreenBox),
       ),

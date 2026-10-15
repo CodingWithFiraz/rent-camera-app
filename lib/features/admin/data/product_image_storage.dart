@@ -112,7 +112,15 @@ class FirebaseProductImageStorage implements ProductImageStorage {
           onError: (Object _) {},
         );
       }
-      await task;
+      await task.timeout(
+        const Duration(seconds: 25),
+        onTimeout: () {
+          task.cancel();
+          throw const AppException(
+            'Unggahan foto memakan waktu terlalu lama. Pastikan Firebase Storage sudah diaktifkan di Firebase Console (console.firebase.google.com) atau simpan tanpa foto.',
+          );
+        },
+      );
       final downloadUrl = await reference.getDownloadURL();
       onProgress?.call(1);
       return UploadedProductImage(downloadUrl: downloadUrl, storagePath: path);

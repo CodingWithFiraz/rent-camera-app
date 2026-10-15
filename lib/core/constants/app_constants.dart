@@ -71,8 +71,13 @@ abstract final class CategoryIconKeys {
   static const String camera = 'camera';
   static const String lens = 'lens';
   static const String flash = 'flash';
+  static const String lighting = 'lighting';
+  static const String drone = 'drone';
   static const String microphone = 'microphone';
+  static const String mic = 'mic';
   static const String stabilizer = 'stabilizer';
+  static const String tripod = 'tripod';
+  static const String sdCard = 'sd_card';
   static const String accessory = 'accessory';
 
   /// Dipakai bila `iconKey` kosong atau tidak dikenal.
@@ -83,8 +88,13 @@ abstract final class CategoryIconKeys {
     camera,
     lens,
     flash,
+    lighting,
+    drone,
     microphone,
+    mic,
     stabilizer,
+    tripod,
+    sdCard,
     accessory,
     defaultKey,
   ];

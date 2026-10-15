@@ -75,7 +75,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -108,10 +108,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   const Text(
                     'Masukkan email akun Anda. Kami akan mengirim tautan untuk membuat kata sandi baru.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: mutedGray,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: mutedGray, fontSize: 14),
                   ),
                   const SizedBox(height: 24),
 
@@ -128,7 +125,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     key: _formKey,
                     child: Theme(
                       data: ThemeData.light().copyWith(
-                        colorScheme: const ColorScheme.light(primary: customOrangeButton),
+                        colorScheme: const ColorScheme.light(
+                          primary: customOrangeButton,
+                        ),
                       ),
                       child: AppTextField(
                         controller: _emailController,

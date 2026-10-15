@@ -38,10 +38,12 @@ class AppScaffold extends StatelessWidget {
     const Color charcoalText = Color(0xFF1E1E1E);
     final resolvedDrawer = drawer;
     final resolvedLeading = leading;
-    
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFBCEE46), // Warna latar belakang AppBar hijau limau
+        backgroundColor: const Color(
+          0xFFBCEE46,
+        ), // Warna latar belakang AppBar hijau limau
         foregroundColor: charcoalText, // Warna ikon dan teks otomatis gelap
         // `automaticallyImplyLeading` dimatikan hanya saat pemanggil sudah
         // menyediakan tombol sendiri, supaya tidak ada dua tombol kiri.

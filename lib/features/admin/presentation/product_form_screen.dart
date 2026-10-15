@@ -222,9 +222,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       return;
     }
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Produk berhasil disimpan.')),
-    );
+    final successMessage = _isActive
+        ? 'Produk berhasil disimpan dan tampil di katalog utama.'
+        : 'Produk berhasil disimpan sebagai arsip (tidak tampil di katalog utama).';
+    messenger.showSnackBar(SnackBar(content: Text(successMessage)));
     if (!mounted) {
       return;
     }
@@ -334,10 +335,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             onChanged: isBusy
                 ? null
                 : (bool value) => setState(() => _isActive = value),
-            title: const Text('Aktif (tampil di katalog)'),
-            subtitle: const Text(
-              'Matikan agar produk tersimpan sebagai arsip; arsip dapat '
-              'dipulihkan dari dashboard.',
+            title: Text(
+              _isActive
+                  ? 'Aktif (Tampil di Katalog / Halaman Utama)'
+                  : 'Arsip (Tidak Tampil di Katalog)',
+            ),
+            subtitle: Text(
+              _isActive
+                  ? 'Produk langsung muncul di katalog utama dan dapat disewa oleh pelanggan.'
+                  : 'Produk disimpan sebagai arsip dan TIDAK muncul di katalog utama (dapat diaktifkan nanti dari dashboard).',
             ),
           ),
           const SizedBox(height: AppSpacing.lg),

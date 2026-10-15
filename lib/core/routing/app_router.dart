@@ -140,7 +140,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminProductEdit,
         name: 'adminProductEdit',
         builder: (BuildContext context, GoRouterState state) =>
-            ProductFormScreen(productId: state.pathParameters['productId'] ?? ''),
+            ProductFormScreen(
+              productId: state.pathParameters['productId'] ?? '',
+            ),
       ),
     ],
   );

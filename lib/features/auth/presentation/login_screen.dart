@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -130,10 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     'Masuk untuk melihat katalog alat dan mengirim permintaan sewa.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: mutedGray,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: mutedGray, fontSize: 14),
                   ),
                   const SizedBox(height: 24),
 
@@ -150,7 +147,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: <Widget>[
                           Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
+                              colorScheme: const ColorScheme.light(
+                                primary: customOrangeButton,
+                              ),
                             ),
                             child: AppTextField(
                               controller: _identifierController,
@@ -158,11 +157,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               enabled: !isSubmitting,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[AutofillHints.email],
+                              autofillHints: const <String>[
+                                AutofillHints.email,
+                              ],
                               validator: (value) => Validators.loginIdentifier(
                                 value,
                                 adminAlias: AppConfig.adminLoginAlias,
-                                isAdminAliasConfigured: AppConfig.isAdminAliasConfigured,
+                                isAdminAliasConfigured:
+                                    AppConfig.isAdminAliasConfigured,
                               ),
                               helperText: AppConfig.isAdminAliasConfigured
                                   ? 'Email akun, atau alias "${AppConfig.adminLoginAlias}".'
@@ -172,7 +174,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: AppSpacing.fieldGap),
                           Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(primary: customOrangeButton),
+                              colorScheme: const ColorScheme.light(
+                                primary: customOrangeButton,
+                              ),
                             ),
                             child: AppTextField(
                               controller: _passwordController,
@@ -180,7 +184,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               obscureText: true,
                               enabled: !isSubmitting,
                               textInputAction: TextInputAction.done,
-                              autofillHints: const <String>[AutofillHints.password],
+                              autofillHints: const <String>[
+                                AutofillHints.password,
+                              ],
                               validator: Validators.password,
                               onFieldSubmitted: (_) => _submit(),
                             ),
@@ -213,7 +219,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           )
                         : const Text(
                             'Masuk',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color.fromARGB(255, 254, 253, 253)),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color.fromARGB(255, 254, 253, 253),
+                            ),
                           ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -229,7 +239,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     onPressed: isSubmitting ? null : _submitWithGoogle,
-                    icon: const Icon(Icons.account_circle_outlined, size: 18, color: charcoalText),
+                    icon: const Icon(
+                      Icons.account_circle_outlined,
+                      size: 18,
+                      color: charcoalText,
+                    ),
                     label: const Text('Masuk dengan Google'),
                   ),
 
@@ -243,13 +257,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () => context.go(AppRoutes.forgotPassword),
-                        child: const Text('Lupa kata sandi?', style: TextStyle(color: charcoalText, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Lupa kata sandi?',
+                          style: TextStyle(
+                            color: charcoalText,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       TextButton(
                         onPressed: isSubmitting
                             ? null
                             : () => context.go(AppRoutes.register),
-                        child: const Text('Buat akun', style: TextStyle(color: charcoalText, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Buat akun',
+                          style: TextStyle(
+                            color: charcoalText,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),

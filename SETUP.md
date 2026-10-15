@@ -16,8 +16,9 @@ Isinya tidak boleh dianggap sudah selesai: periksa bagian "Status saat ini" lebi
 | SHA-1/SHA-256 Android | Belum diverifikasi | — |
 | `firebase/storage.rules` | **Ada** (dibuat Fase 5), **belum dideploy** | `firebase.json` → `firebase/storage.rules`; `profiles/{uid}/**` hanya pemilik UID, `products/**`+`banners/**`+`creatives/**` hanya admin, wajib `image/*` ≤ 5 MB |
 | `firebase/firestore.rules` / `firestore.indexes.json` | `firestore.rules` **Ada** (dibuat Fase 6), **belum dideploy**; `firestore.indexes.json` belum ada | rules memuat `products/**` hanya-tulis admin (baca untuk pengguna login), `users/{uid}` hanya pemilik UID tanpa field otoritas, dan `users/{uid}/cart_items/**` hanya pemilik UID dengan `quantity` integer 1–999. Filter katalog/dashboard dikerjakan di klien sehingga composite index belum diperlukan |
-| `scripts/seed_sample_data.mjs` (Fase 5) | Ada, **belum dijalankan** | `node scripts/seed_sample_data.mjs --dry-run` lulus tanpa kredensial; `firebase-admin` belum dipasang sehingga penulisan dokumen belum dijalankan |
-| `scripts/grant_admin.mjs` (Fase 6) | **Ada**, belum dijalankan pada akun nyata | `node scripts/grant_admin.mjs --dry-run` (dengan `--uid=`/`--email=`) mencetak rencana tanpa menyentuh Firebase; `--revoke` dan penolakan target/argumen yang tidak lengkap juga terverifikasi. `firebase-admin` belum dipasang dan email admin pemilik belum ada |
+| `scripts/seed_sample_data.mjs` (Fase 5, diperluas: `categories` + `products` contoh) | Ada, **belum pernah menulis ke Firebase** | pratinjau default (tanpa kredensial) memvalidasi `scripts/seed_config.json` lalu mencetak 6 kategori + 4 produk contoh (arsip) + 4 rate card + 2 kreator; penulisan hanya lewat `--apply` dan tidak menimpa dokumen yang sudah ada; `firebase-admin` belum dipasang sehingga penulisan belum dijalankan |
+| `scripts/grant_admin.mjs` (Fase 6) | **Ada**, belum dijalankan pada akun nyata | aksi wajib eksplisit `--grant`/`--revoke` (tanpa aksi default): `node scripts/grant_admin.mjs --dry-run --grant --uid=abc123` mencetak rencana tanpa menyentuh Firebase; `--grant --revoke` bersamaan, `--uid` bersama `--email`, target kosong, dan email tanpa `@` semuanya ditolak. `firebase-admin` belum dipasang dan email admin pemilik belum ada |
+| Kualitas kode repo (task seed/claim ini) | Bersih | 6 file dari commit UI `f816f76`/`7173a6f` belum sesuai `dart format` dan 2 pemakaian `withOpacity` baru; keduanya dirapikan pada task ini → `dart format --output=none --set-exit-if-changed lib test` = `Formatted 152 files (0 changed)`, `flutter analyze` = `No issues found!`, `flutter test` = `All tests passed!` (318 test) |
 | Claim `{ admin: true }` pada akun admin nyata | **Belum ada** | tanpa claim, entri Dashboard admin tidak muncul di drawer katalog, route `/admin` dialihkan ke katalog, dan rules menolak penulisan produk (lihat §4c) |
 | `--dart-define` nilai project | Belum diisi | lihat §3 |
 | `--dart-define=WHATSAPP_NUMBER` | **Belum diisi** (tidak ada nilai default/contoh) | selama kosong, tombol "Checkout via WhatsApp" nonaktif dan UI menjelaskan nomor belum dikonfigurasi (Fase 4) |
@@ -169,30 +170,49 @@ divalidasi Firebase Authentication, dan role admin hanya berasal dari custom cla
   penulisan keranjang berhenti dengan `permission-denied` dan tidak dapat diverifikasi.
 - Jangan commit service-account JSON, private key, atau file kredensial.
 
-## 4b. Seed konten Fase 5 (rate card & kreator)
+## 4b. Seed konten awal (`categories`, `products` contoh, rate card & kreator)
 
 Script seed berada di `scripts/` dan memakai Firebase Admin SDK, jadi hanya dijalankan
 dari lingkungan tepercaya (bukan dari aplikasi Flutter):
 
 ```bash
 npm --prefix scripts install                     # memasang firebase-admin (sekali)
-node scripts/seed_sample_data.mjs --dry-run      # memeriksa data tanpa kredensial
-node scripts/seed_sample_data.mjs --service-account=<path-service-account.json>
-# atau: GOOGLE_APPLICATION_CREDENTIALS=<path> node scripts/seed_sample_data.mjs
+node scripts/seed_sample_data.mjs                # pratinjau (default, tanpa kredensial)
+node scripts/seed_sample_data.mjs --dry-run      # sama: hanya mencetak rencana
+node scripts/seed_sample_data.mjs --apply --service-account=<path-service-account.json>
+# atau: GOOGLE_APPLICATION_CREDENTIALS=<path> node scripts/seed_sample_data.mjs --apply
+node scripts/seed_sample_data.mjs --apply --replace-sample ...   # menulis ulang dokumen contoh
 ```
 
-Isi yang ditulis (idempotent, aman dijalankan berulang):
+Sifat penulisan (diperiksa lewat pratinjau, tanpa kredensial):
 
-- `service_rates`: empat kelompok layanan pada `scripts/seed_config.json` dengan
-  `rateLabel: "CONTOH RATE — BELUM FINAL"`, `startingPrice: null`, `priceUnit: ""`,
-  `deliverables: []`, dan penanda `isSample: true` — halaman Portofolio akan menampilkan
-  label tersebut apa adanya sampai pemilik mengisi rate final.
-- `creatives`: dokumen pada `scripts/seed_config.json` (`ipan_ramadhan`,
-  `firas_fadly_a`). **Nama tampilan pada berkas itu perlu diverifikasi/diganti pemilik**;
-  `roleTitle`, `specialties`, `photoUrl`, dan `portfolioUrl` sengaja dikosongkan karena
-  script tidak boleh mengarang pengalaman, foto, atau URL orang. URL yang diisi wajib
-  `http`/`https` (divalidasi script), dan selama `portfolioUrl` kosong tombol
-  `Lihat Portofolio` di aplikasi nonaktif dengan penjelasan.
+- **Tanpa `--apply` tidak ada dokumen yang ditulis.** Pratinjau memvalidasi
+  `scripts/seed_config.json` lalu mencetak rencananya.
+- **Tidak menimpa pekerjaan yang sudah ada.** Dokumen milik pemilik (tanpa penanda
+  `isSample: true`) selalu dilewati, dan dokumen contoh yang sudah ada juga dilewati
+  kecuali pemanggil memberi `--replace-sample`. Karena itu isian manual pemilik pada
+  dokumen contoh tidak hilang kalau skrip dijalankan ulang.
+- Isi yang ditulis:
+
+  - `categories`: enam kategori contoh dari blueprint §6.1 (`kamera`, `lensa`,
+    `flash_lighting`, `audio_microphone`, `stabilizer_support`, `aksesori`) dengan
+    `iconKey` yang divalidasi terhadap `CategoryIconKeys` di Dart. Kategori ini perlu ada
+    lebih dulu karena form produk admin tidak dapat menyimpan produk tanpa kategori.
+  - `products`: empat dokumen contoh yang **selalu arsip (`isActive: false`)** dengan
+    harga/stok apa adanya dari konfigurasi (default 0 = belum diisi) dan tanpa foto,
+    sehingga tidak pernah muncul di katalog pelanggan. `isActive: true` pada konfigurasi
+    sengaja **ditolak** oleh skrip; produk diaktifkan dari dashboard admin setelah
+    datanya nyata.
+  - `service_rates`: empat kelompok layanan pada `scripts/seed_config.json` dengan
+    `rateLabel: "CONTOH RATE — BELUM FINAL"`, `startingPrice: null`, `priceUnit: ""`,
+    `deliverables: []`, dan penanda `isSample: true` — halaman Portofolio akan menampilkan
+    label tersebut apa adanya sampai pemilik mengisi rate final.
+  - `creatives`: dokumen pada `scripts/seed_config.json` (`kreator_1`, `kreator_2`).
+    **Nama tampilan pada berkas itu perlu diverifikasi/diganti pemilik**; `roleTitle`,
+    `specialties`, `photoUrl`, dan `portfolioUrl` sengaja dikosongkan karena script tidak
+    boleh mengarang pengalaman, foto, atau URL orang. URL yang diisi wajib `http`/`https`
+    (divalidasi script), dan selama `portfolioUrl` kosong tombol `Lihat Portofolio` di
+    aplikasi nonaktif dengan penjelasan.
 
 Jangan commit service-account JSON; pola berkas itu sudah masuk `.gitignore`
 (`scripts/service-account*.json`).
@@ -207,11 +227,15 @@ dijalankan dan belum dapat diverifikasi runtime dari task ini.
 
    ```bash
    npm --prefix scripts install        # memasang firebase-admin (sekali)
-   node scripts/grant_admin.mjs --dry-run --email=<email-admin>   # cek rencana, tanpa kredensial
-   node scripts/grant_admin.mjs --email=<email-admin> --service-account=<path-service-account.json>
-   # atau: GOOGLE_APPLICATION_CREDENTIALS=<path> node scripts/grant_admin.mjs --uid=<uid-akun-admin>
-   # mencabut: node scripts/grant_admin.mjs --uid=<uid-akun-admin> --revoke
+   node scripts/grant_admin.mjs --dry-run --grant --email=<email-admin>   # cek rencana, tanpa kredensial
+   node scripts/grant_admin.mjs --grant --email=<email-admin> --service-account=<path-service-account.json>
+   # atau: GOOGLE_APPLICATION_CREDENTIALS=<path> node scripts/grant_admin.mjs --grant --uid=<uid-akun-admin>
+   # mencabut: node scripts/grant_admin.mjs --revoke --uid=<uid-akun-admin>
    ```
+
+   Aksi wajib dipilih eksplisit (`--grant` atau `--revoke`); skrip menolak perintah tanpa
+   aksi, aksi ganda, target ganda (`--uid` bersama `--email`), target kosong, dan email
+   tanpa `@`.
 
    Skrip mempertahankan claim lain pada akun itu dan hanya mengubah field `admin`, lalu
    membaca ulang akun dari Firebase untuk memverifikasi hasilnya (bukan mengasumsikan
@@ -246,21 +270,23 @@ adanya. Pengelolaan kategori, banner, rate card, dan kreator **tidak** termasuk 
 ## 5. Verifikasi yang bisa dijalankan sekarang
 
 ```bash
-dart format lib test     # dijalankan pada Fase 4: 115 file diperiksa, 4 diubah
-dart format <file yang diubah>  # Fase 6: 23 file diperiksa pada pemeriksaan terakhir,
-                         # tanpa sisa perubahan format
-flutter analyze          # Fase 6: tanpa error/warning baru; 2 info
-                         # `deprecated_member_use` (`withOpacity` di login_screen.dart
-                         # dan catalog_screen.dart) sudah ada sebelum Fase 6
-flutter test             # Fase 6: All tests passed! (318 test)
+dart format --output=none --set-exit-if-changed lib test
+                         # task seed/claim ini: `Formatted 152 files (0 changed)`
+                         # (6 file dari commit UI `f816f76`/`7173a6f` dirapikan dulu)
+flutter analyze          # task ini: `No issues found!` — 4 info `deprecated_member_use`
+                         # (`withOpacity` pada layar auth dan katalog) sudah diganti
+                         # `withValues`
+flutter test             # task ini: All tests passed! (318 test)
 flutter test test/features/admin test/app_auth_routing_test.dart test/features/catalog/catalog_screen_test.dart
                          # Fase 6: All tests passed! (51 test)
-node scripts/seed_sample_data.mjs --dry-run   # mencetak 4 rate card + 2 kreator,
-                         # tidak menulis dokumen dan tidak butuh kredensial
+node scripts/seed_sample_data.mjs
+                         # task ini (pratinjau default, tanpa kredensial): 6 kategori +
+                         # 4 produk contoh (arsip) + 4 rate card + 2 kreator dicetak,
+                         # tidak ada dokumen yang ditulis
+node scripts/grant_admin.mjs --dry-run --grant --uid=abc123
+                         # mencetak rencana pemberian claim tanpa menyentuh Firebase
 node scripts/grant_admin.mjs --dry-run --email=<email-admin>
-                         # Fase 6: mencetak rencana pemberian claim tanpa menyentuh
-                         # Firebase; `--uid=…`, `--revoke`, dan penolakan target yang
-                         # tidak lengkap juga diperiksa
+                         # ditolak: "Tentukan aksi secara eksplisit" (tanpa --grant/--revoke)
 flutter run -d chrome    # dijalankan: melewati `main()`, berhenti di #/login; uji
                          # manual di halaman yang sama berlanjut ke #/register
                          # lalu #/catalog → bootstrap web memakai bagian `web`
@@ -346,8 +372,13 @@ Daftar lengkap ada di `IMPLEMENTATION_PLAN.md` §3. Yang paling dekat dengan fas
 | Tombol "Checkout via WhatsApp" nonaktif dan menyebut nomor belum dikonfigurasi | jalankan aplikasi dengan `--dart-define=WHATSAPP_NUMBER=<kode-negara><nomor>` (§3) setelah pemilik menentukan nomor final (`IMPLEMENTATION_PLAN.md` blocker #2). Aplikasi sengaja tanpa nomor default |
 | Penulisan/hapus item keranjang gagal dengan `permission-denied` | pastikan `firebase/firestore.rules` sudah dibuat dan dideploy dengan blok `users/{uid}/cart_items` untuk pemilik UID (§4) |
 | Item keranjang tampak "berhasil ditambahkan" tetapi tidak muncul | periksa apakah sesi login valid pada UID yang sama (keranjang dibatasi UID) dan apakah rules mengizinkan baca untuk UID tersebut; aplikasi hanya menampilkan sukses bila penulisan Firestore benar-benar selesai |
-| Entri "Dashboard admin" tidak muncul di drawer katalog | pastikan akun punya claim `{admin: true}` (`node scripts/grant_admin.mjs --uid=<uid>`, §4c), rules sudah dideploy, lalu **login ulang** (claim dibaca dengan `forceRefresh: true`) |
+| Entri "Dashboard admin" tidak muncul di drawer katalog | pastikan akun punya claim `{admin: true}` (`node scripts/grant_admin.mjs --grant --uid=<uid>`, §4c), rules sudah dideploy, lalu **login ulang** (claim dibaca dengan `forceRefresh: true`) |
 | Route `/admin` selalu dialihkan ke katalog | sama seperti baris di atas: claim belum terbaca atau bukan `true`. Route guard hanya UI; backend tetap menolak penulisan tanpa claim |
 | Penulisan produk gagal `permission-denied` atau foto produk gagal diunggah | jalankan `firebase deploy --only firestore:rules,storage`, lalu pastikan bucket Storage aktif dan berkas berupa `image/*` ≤ 5 MB |
 | Dashboard admin menampilkan daftar kosong | itu keadaan nyata ketika collection `products` belum diisi; tambahkan produk lewat form admin (Fase 6). Aplikasi tidak menampilkan data contoh palsu |
+| Pratinjau seed gagal: "config.categories harus berisi minimal satu kategori" | berkas `scripts/seed_config.json` yang dipakai belum memuat blok `categories`; pakai berkas dari repo terbaru (enam kategori contoh) atau tambahkan kategori yang benar-benar dipakai |
+| `--apply` "tidak mengubah" dokumen contoh yang sudah ada | itu disengaja (skrip tidak menimpa pekerjaan yang ada). Hapus dokumen ber-penanda `isSample: true` di Firebase Console, atau jalankan ulang dengan `--apply --replace-sample` bila memang ingin menulis ulang data contoh |
+| `--apply` gagal: "produk contoh harus diarsipkan" | `products[].isActive` diset `true` pada `scripts/seed_config.json`. Biarkan `false`; aktifkan produk dari dashboard admin setelah nama, brand, harga, stok, dan fotonya nyata |
+| `grant_admin.mjs` menolak: "Tentukan aksi secara eksplisit" | tambahkan `--grant` (memberi claim) atau `--revoke` (mencabut); skrip sengaja tidak punya aksi default |
+| `grant_admin.mjs` menolak: "Pilih salah satu target" | target hanya boleh satu: `--uid=<uid>` **atau** `--email=<email>` |
 

@@ -12,8 +12,13 @@ abstract final class CategoryIcons {
     CategoryIconKeys.camera: Icons.photo_camera_outlined,
     CategoryIconKeys.lens: Icons.camera_outlined,
     CategoryIconKeys.flash: Icons.flash_on_outlined,
+    CategoryIconKeys.lighting: Icons.light_mode_outlined,
+    CategoryIconKeys.drone: Icons.flight_outlined,
     CategoryIconKeys.microphone: Icons.mic_none_outlined,
+    CategoryIconKeys.mic: Icons.mic_none_outlined,
     CategoryIconKeys.stabilizer: Icons.videocam_outlined,
+    CategoryIconKeys.tripod: Icons.videocam_outlined,
+    CategoryIconKeys.sdCard: Icons.sd_card_outlined,
     CategoryIconKeys.accessory: Icons.cable_outlined,
     CategoryIconKeys.defaultKey: Icons.category_outlined,
   };

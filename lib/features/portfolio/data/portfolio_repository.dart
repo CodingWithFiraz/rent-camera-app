@@ -71,22 +71,23 @@ class PortfolioRepository {
   }
 
   List<ServiceRate> _activeServiceRates(List<ServiceRate> rates) {
-    final items = rates
-        .where((ServiceRate rate) => rate.isActive)
-        .toList(growable: true)
-      ..sort(
-        (ServiceRate a, ServiceRate b) => a.sortOrder.compareTo(b.sortOrder),
-      );
+    final items =
+        rates.where((ServiceRate rate) => rate.isActive).toList(growable: true)
+          ..sort(
+            (ServiceRate a, ServiceRate b) =>
+                a.sortOrder.compareTo(b.sortOrder),
+          );
     return List<ServiceRate>.unmodifiable(items);
   }
 
   List<Creative> _activeCreatives(List<Creative> creatives) {
-    final items = creatives
-        .where((Creative creative) => creative.isActive)
-        .toList(growable: true)
-      ..sort(
-        (Creative a, Creative b) => a.sortOrder.compareTo(b.sortOrder),
-      );
+    final items =
+        creatives
+            .where((Creative creative) => creative.isActive)
+            .toList(growable: true)
+          ..sort(
+            (Creative a, Creative b) => a.sortOrder.compareTo(b.sortOrder),
+          );
     return List<Creative>.unmodifiable(items);
   }
 

@@ -1,25 +1,31 @@
 #!/usr/bin/env node
 /**
- * Seed data contoh: `categories`, `products`, empat `service_rates`, dan `creatives`.
+ * Seed data contoh: `categories`, `products` (arsip), empat `service_rates`,
+ * dan `creatives`.
  *
  * Pemakaian:
  *   node scripts/seed_sample_data.mjs                    # pratinjau (default)
  *   node scripts/seed_sample_data.mjs --dry-run          # sama: hanya mencetak rencana
  *   node scripts/seed_sample_data.mjs --apply --service-account=/path/service-account.json
  *   GOOGLE_APPLICATION_CREDENTIALS=/path/service-account.json node scripts/seed_sample_data.mjs --apply
+ *   node scripts/seed_sample_data.mjs --apply --replace-sample   # tulis ulang dokumen contoh
  *
  * Sifat:
  * - Menulis ke Firebase **hanya** bila diminta eksplisit lewat `--apply`; tanpa
  *   flag itu skrip berhenti setelah mencetak rencana.
- * - Idempotent: dokumen ditulis dengan `set(..., { merge: true })` pada document
- *   ID tetap, sehingga menjalankan skrip dua kali tidak menggandakan data.
- * - Dokumen yang sudah ada **tanpa** penanda `isSample: true` dianggap milik
- *   pemilik dan dilewati (tidak pernah ditimpa).
+ * - Tidak pernah menimpa pekerjaan yang sudah ada: dokumen milik pemilik
+ *   (tanpa penanda `isSample: true`) selalu dilewati, dan dokumen contoh yang
+ *   sudah ada juga dilewati kecuali pemanggil memberi `--replace-sample`.
+ *   Dengan begitu perubahan manual pemilik tidak hilang karena skrip dijalankan
+ *   ulang.
+ * - Idempotent: dokumen ditulis pada document ID tetap, sehingga menjalankan
+ *   skrip dua kali tidak menggandakan data.
  * - Tidak mengarang data produksi: rate card memakai label
  *   "CONTOH RATE — BELUM FINAL", `startingPrice` ditulis `null`, produk contoh
- *   ditulis **harga 0, stok 0, tanpa foto, dan `isActive: false` (arsip)**
- *   sehingga tidak pernah muncul di katalog pelanggan sebelum pemilik mengisi
- *   data aslinya, dan URL (foto/tautan portofolio) hanya ditulis bila
+ *   ditulis **arsip (`isActive: false`)** dengan harga/stok 0 bila konfigurasi
+ *   tidak mengisinya dan tanpa foto, sehingga tidak pernah muncul di katalog
+ *   pelanggan sebelum pemilik mengisi data aslinya dan mengaktifkannya lewat
+ *   dashboard admin. URL (foto/tautan portofolio) hanya ditulis bila
  *   benar-benar diisi pemilik pada `scripts/seed_config.json` dan valid
  *   `http`/`https`.
  * - Setiap dokumen diberi penanda `isSample: true` supaya mudah dicari dan
@@ -48,6 +54,7 @@ function parseArguments(argv) {
   const options = {
     writes: false,
     dryRun: false,
+    replaceSample: false,
     configPath: path.join(scriptDir, 'seed_config.json'),
     serviceAccountPath: '',
   };
@@ -58,6 +65,10 @@ function parseArguments(argv) {
     }
     if (argument === '--dry-run') {
       options.dryRun = true;
+      continue;
+    }
+    if (argument === '--replace-sample') {
+      options.replaceSample = true;
       continue;
     }
     if (argument.startsWith('--config=')) {
@@ -250,8 +261,13 @@ const KNOWN_CATEGORY_ICON_KEYS = [
   'camera',
   'lens',
   'flash',
+  'lighting',
+  'drone',
   'microphone',
+  'mic',
   'stabilizer',
+  'tripod',
+  'sd_card',
   'accessory',
   'category',
 ];
@@ -306,9 +322,12 @@ function buildCategories(config) {
 /**
  * Menyusun dokumen `products` contoh dari konfigurasi (boleh belum diisi).
  *
- * Produk contoh selalu ditulis arsip (`isActive: false`) dengan harga dan stok
- * dari konfigurasi (default 0 = harga belum diisi): katalog hanya menampilkan
+ * Produk contoh **selalu** ditulis arsip (`isActive: false`) dengan harga dan
+ * stok dari konfigurasi (default 0 = belum diisi): katalog hanya menampilkan
  * produk aktif, sehingga data contoh tidak pernah tampil sebagai alat nyata.
+ * Karena itu `isActive: true` pada konfigurasi ditolak dengan pesan yang
+ * menjelaskan, bukan diabaikan diam-diam: pemilik mengaktifkan produknya dari
+ * dashboard admin setelah datanya benar.
  */
 function buildProducts(config, categories) {
   if (config.products === undefined) {
@@ -333,6 +352,13 @@ function buildProducts(config, categories) {
         `${label}.priceUnit harus kosong, "per_day", atau "per_session".`,
       );
     }
+    if (entry.isActive === true) {
+      throw new Error(
+        `${label}.isActive tidak boleh true: produk contoh harus diarsipkan ` +
+          'supaya tidak muncul di katalog pelanggan. Aktifkan produknya dari ' +
+          'dashboard admin setelah nama, brand, harga, stok, dan fotonya nyata.',
+      );
+    }
     return {
       id: requireText(entry.id, `${label}.id`),
       data: {
@@ -348,7 +374,8 @@ function buildProducts(config, categories) {
           `${label}.stockQuantity`,
         ),
         imageUrls: optionalHttpUrlList(entry.imageUrls, `${label}.imageUrls`),
-        isActive: entry.isActive === true,
+        // Selalu arsip: katalog pelanggan hanya menampilkan produk aktif.
+        isActive: false,
         isSample: true,
       },
     };
@@ -357,34 +384,51 @@ function buildProducts(config, categories) {
   return documents;
 }
 
-/** Menulis dokumen secara idempotent, lalu melaporkan berapa yang dibuat. */
-async function writeDocuments({ collectionName, documents, db, FieldValue }) {
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
-  const skippedIds = [];
+/**
+ * Menulis dokumen yang **belum ada** ke Firestore dan melaporkan hasilnya.
+ *
+ * Skrip tidak pernah menimpa pekerjaan yang sudah ada: dokumen milik pemilik
+ * selalu dilewati, dan dokumen contoh yang sudah ada juga dilewati kecuali
+ * pemanggil memberi `--replace-sample` (yang tetap tidak menyentuh dokumen
+ * tanpa penanda `isSample: true`). Dengan begitu perubahan manual pemilik pada
+ * dokumen contoh tidak hilang hanya karena skrip dijalankan ulang.
+ */
+async function writeDocuments({
+  collectionName,
+  documents,
+  db,
+  FieldValue,
+  replaceSample,
+}) {
+  const result = { created: 0, updated: 0, keptExisting: [], keptOwner: [] };
   for (const document of documents) {
     const reference = db.collection(collectionName).doc(document.id);
     const snapshot = await reference.get();
-    if (snapshot.exists && snapshot.data().isSample !== true) {
-      // Dokumen milik pemilik: seed tidak menimpa data produksi.
-      skipped += 1;
-      skippedIds.push(document.id);
+    if (snapshot.exists) {
+      if (snapshot.data().isSample !== true) {
+        // Dokumen milik pemilik: seed tidak menimpa data produksi.
+        result.keptOwner.push(document.id);
+        continue;
+      }
+      if (!replaceSample) {
+        result.keptExisting.push(document.id);
+        continue;
+      }
+      result.updated += 1;
+      await reference.set(
+        { ...document.data, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
       continue;
     }
-    const data = {
+    result.created += 1;
+    await reference.set({
       ...document.data,
+      createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-    };
-    if (snapshot.exists) {
-      updated += 1;
-    } else {
-      data.createdAt = FieldValue.serverTimestamp();
-      created += 1;
-    }
-    await reference.set(data, { merge: true });
+    });
   }
-  return { created, updated, skipped, skippedIds };
+  return result;
 }
 
 /** Melaporkan hasil penulisan satu collection tanpa membesar-besarkan hasil. */
@@ -392,10 +436,14 @@ function reportResult(collectionName, result) {
   console.log(
     `${collectionName.padEnd(13)}: ${result.created} dibuat, ` +
       `${result.updated} diperbarui, ` +
-      `${result.skipped} dilewati (dokumen milik pemilik).`,
+      `${result.keptExisting.length} sudah ada (tidak diubah), ` +
+      `${result.keptOwner.length} dilewati (dokumen milik pemilik).`,
   );
-  if (result.skippedIds.length > 0) {
-    console.log(`  dilewati: ${result.skippedIds.join(', ')}`);
+  if (result.keptExisting.length > 0) {
+    console.log(`  sudah ada     : ${result.keptExisting.join(', ')}`);
+  }
+  if (result.keptOwner.length > 0) {
+    console.log(`  milik pemilik : ${result.keptOwner.join(', ')}`);
   }
 }
 
@@ -420,7 +468,8 @@ async function main() {
   console.log(`Kategori    : ${categories.length} dokumen`);
   console.log(describeDocuments(categories));
   console.log(
-    `Produk      : ${products.length} dokumen contoh (arsip, harga 0, tanpa foto)`,
+    `Produk      : ${products.length} dokumen contoh ` +
+      '(selalu arsip: isActive false)',
   );
   console.log(
     products.length === 0
@@ -458,6 +507,11 @@ async function main() {
       '\nMode pratinjau: tidak ada dokumen yang ditulis. Tambahkan --apply ' +
         '(beserta kredensial) untuk menulis ke Firebase.',
     );
+    console.log(
+      'Saat menulis, dokumen yang sudah ada tidak diubah. Tambahkan ' +
+        '--replace-sample hanya bila dokumen contoh (isSample: true) memang ' +
+        'ingin ditulis ulang.',
+    );
     return;
   }
 
@@ -482,41 +536,42 @@ async function main() {
       : adminApp.initializeApp(appOptions);
   const db = adminFirestore.getFirestore(app);
 
-  const categoryResult = await writeDocuments({
-    collectionName: 'categories',
-    documents: categories,
-    db,
-    FieldValue: adminFirestore.FieldValue,
-  });
-  const productResult = await writeDocuments({
-    collectionName: 'products',
-    documents: products,
-    db,
-    FieldValue: adminFirestore.FieldValue,
-  });
-  const rateResult = await writeDocuments({
-    collectionName: 'service_rates',
-    documents: serviceRates,
-    db,
-    FieldValue: adminFirestore.FieldValue,
-  });
-  const creativeResult = await writeDocuments({
-    collectionName: 'creatives',
-    documents: creatives,
-    db,
-    FieldValue: adminFirestore.FieldValue,
-  });
+  const collections = [
+    { name: 'categories', documents: categories },
+    { name: 'products', documents: products },
+    { name: 'service_rates', documents: serviceRates },
+    { name: 'creatives', documents: creatives },
+  ];
+  const results = [];
+  for (const collection of collections) {
+    results.push([
+      collection.name,
+      await writeDocuments({
+        collectionName: collection.name,
+        documents: collection.documents,
+        db,
+        FieldValue: adminFirestore.FieldValue,
+        replaceSample: options.replaceSample,
+      }),
+    ]);
+  }
 
   console.log('\nHasil:');
-  reportResult('categories', categoryResult);
-  reportResult('products', productResult);
-  reportResult('service_rates', rateResult);
-  reportResult('creatives', creativeResult);
+  for (const [collectionName, result] of results) {
+    reportResult(collectionName, result);
+  }
   console.log(
     '\nLangkah pemilik: buka Dashboard admin, isi nama/brand/harga/stok/foto ' +
-      'yang sebenarnya pada produk contoh, aktifkan produk bila sudah layak ' +
-      'tampil, ganti rateLabel/harga final, isi foto dan tautan portofolio ' +
-      'kreator, lalu hapus dokumen ber-penanda isSample bila data asli sudah siap.',
+      'yang sebenarnya pada produk contoh, lalu aktifkan produk bila sudah ' +
+      'layak tampil (produk contoh ditulis arsip sehingga tidak muncul di ' +
+      'katalog sebelum diaktifkan). Ganti rateLabel/harga final, isi foto dan ' +
+      'tautan portofolio kreator, lalu hapus dokumen ber-penanda isSample bila ' +
+      'data asli sudah siap.',
+  );
+  console.log(
+    'Catatan: pemanggilan berikutnya tidak menulis ulang dokumen yang sudah ' +
+      'ada. Hapus dokumen ber-penanda isSample atau tambahkan ' +
+      '--replace-sample bila memang ingin menulis ulang data contoh.',
   );
 }
 

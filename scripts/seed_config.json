@@ -1,12 +1,127 @@
 {
-  "_catatan": "Konfigurasi seed data contoh (blueprint §6.6 dan §6.7). Isi berkas ini ADALAH DATA CONTOH, bukan data produksi: label rate memakai 'CONTOH RATE — BELUM FINAL' (default skrip), sedangkan harga final, deliverables, foto kreator, dan tautan portofolio sengaja dikosongkan sampai pemilik mengisinya. Lihat scripts/seed_sample_data.mjs.",
+  "_catatan": "Konfigurasi seed data contoh (blueprint §6.1, §6.2, §6.6, dan §6.7). Isi berkas ini ADALAH DATA CONTOH, bukan data produksi: label rate memakai 'CONTOH RATE — BELUM FINAL' (default skrip), produk contoh ditulis arsip (isActive false) dengan harga/stok apa adanya dari berkas ini, sedangkan harga final, deliverables, foto kreator, dan tautan portofolio sengaja dikosongkan sampai pemilik mengisinya. Kategori disertakan karena form produk admin tidak dapat menyimpan produk tanpa kategori. Lihat scripts/seed_sample_data.mjs.",
   "_diisi_pemilik": [
+    "categories[].name dan slug: kategori alat yang benar-benar direntalkan; iconKey harus salah satu dari camera, lens, flash, microphone, stabilizer, accessory, category.",
+    "products[]: ganti nama/brand/deskripsi/harga/stok contoh dengan alat nyata; produk contoh selalu ditulis arsip (isActive: false) sehingga harus diaktifkan dari dashboard admin setelah datanya benar.",
+    "products[].categoryId harus sama dengan salah satu categories[].id pada berkas ini.",
+    "products[].imageUrls: URL foto milik pemilik (http/https); kosongkan bila foto belum ada dan unggah lewat dashboard admin.",
     "rateLabel: ganti dengan label final (mis. 'Mulai dari') setelah harga disepakati.",
     "startingPrice: integer Rupiah; priceUnit: 'per_day' atau 'per_session'.",
     "deliverables: daftar keluaran pekerjaan yang benar-benar dijanjikan.",
     "creatives[].name, roleTitle, specialties: data kreator yang sebenarnya.",
     "creatives[].photoUrl dan creatives[].portfolioUrl: URL milik kreator (http/https).",
-    "Set isActive: false bila layanan/kreator tidak dipakai, lalu hapus dokumen ber-penanda isSample setelah data asli siap."
+    "Set isActive: false bila layanan/kreator tidak dipakai, lalu hapus dokumen ber-penanda isSample setelah data asli siap (skrip tidak menulis ulang dokumen yang sudah ada)."
+  ],
+  "categories": [
+    {
+      "id": "kamera",
+      "name": "Kamera",
+      "slug": "kamera",
+      "description": "Kamera mirrorless, DSLR, dan kamera sinema.",
+      "iconKey": "camera",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "lensa",
+      "name": "Lensa",
+      "slug": "lensa",
+      "description": "Lensa prime, zoom, dan telefoto.",
+      "iconKey": "lens",
+      "sortOrder": 2,
+      "isActive": true
+    },
+    {
+      "id": "lighting",
+      "name": "Lighting",
+      "slug": "lighting",
+      "description": "Lampu studio, continuous light, flash, dan panel LED.",
+      "iconKey": "lighting",
+      "sortOrder": 3,
+      "isActive": true
+    },
+    {
+      "id": "drone",
+      "name": "Drone",
+      "slug": "drone",
+      "description": "Drone rekaman udara dan perlengkapannya.",
+      "iconKey": "drone",
+      "sortOrder": 4,
+      "isActive": true
+    },
+    {
+      "id": "mic",
+      "name": "Mic",
+      "slug": "mic",
+      "description": "Mikrofon wireless, shotgun mic, dan clip-on lavalier.",
+      "iconKey": "mic",
+      "sortOrder": 5,
+      "isActive": true
+    },
+    {
+      "id": "tripod",
+      "name": "Tripod",
+      "slug": "tripod",
+      "description": "Tripod, monopod, gimbal, dan fluid head.",
+      "iconKey": "tripod",
+      "sortOrder": 6,
+      "isActive": true
+    },
+    {
+      "id": "sd_card",
+      "name": "SD Card",
+      "slug": "sd-card",
+      "description": "Kartu memori SD card, microSD, dan CFexpress kecepatan tinggi.",
+      "iconKey": "sd_card",
+      "sortOrder": 7,
+      "isActive": true
+    }
+  ],
+  "products": [
+    {
+      "id": "contoh_kamera_mirrorless",
+      "name": "Contoh Kamera Mirrorless (data contoh)",
+      "description": "Dokumen contoh: ganti dengan alat nyata beserta deskripsi kondisi dan kelengkapannya lewat dashboard admin.",
+      "categoryId": "kamera",
+      "brand": "Contoh Brand",
+      "price": 0,
+      "priceUnit": "",
+      "stockQuantity": 0,
+      "isActive": false
+    },
+    {
+      "id": "contoh_lensa_50mm",
+      "name": "Contoh Lensa 50mm (data contoh)",
+      "description": "Dokumen contoh untuk kategori Lensa; ganti dengan alat nyata sebelum produk diaktifkan.",
+      "categoryId": "lensa",
+      "brand": "Contoh Brand",
+      "price": 0,
+      "priceUnit": "",
+      "stockQuantity": 0,
+      "isActive": false
+    },
+    {
+      "id": "contoh_wireless_microphone",
+      "name": "Contoh Wireless Microphone (data contoh)",
+      "description": "Dokumen contoh untuk kategori Mic; ganti dengan alat nyata sebelum produk diaktifkan.",
+      "categoryId": "mic",
+      "brand": "Contoh Brand",
+      "price": 0,
+      "priceUnit": "",
+      "stockQuantity": 0,
+      "isActive": false
+    },
+    {
+      "id": "contoh_gimbal_stabilizer",
+      "name": "Contoh Gimbal Stabilizer (data contoh)",
+      "description": "Dokumen contoh untuk kategori Tripod & Support; ganti dengan alat nyata sebelum produk diaktifkan.",
+      "categoryId": "tripod",
+      "brand": "Contoh Brand",
+      "price": 0,
+      "priceUnit": "",
+      "stockQuantity": 0,
+      "isActive": false
+    }
   ],
   "serviceRates": [
     {
