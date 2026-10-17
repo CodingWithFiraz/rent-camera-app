@@ -3,55 +3,39 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/widgets/product_image.dart';
-import '../../data/admin_product_image_picker.dart';
 
-/// Bagian foto pada form produk: pratinjau, progress unggah, dan penandaan foto
-/// lama yang akan dibuang.
-///
-/// Pratinjau memakai byte berkas yang dipilih (bukan path) supaya juga tampil
-/// pada web. Foto baru hanya menjadi pratinjau sampai produk disimpan: bila
-/// unggahan gagal, daftar foto lama tidak berubah (blueprint §10).
+/// Bagian foto pada form produk: pratinjau Image.network dan input link URL gambar online.
 class AdminProductImageField extends StatelessWidget {
   const AdminProductImageField({
     super.key,
-    required this.existingImageUrls,
-    required this.removedImageUrls,
-    required this.pendingImages,
+    required this.controller,
     required this.isBusy,
-    required this.isUploading,
-    required this.uploadedImageCount,
-    required this.uploadTotal,
-    required this.uploadProgress,
-    required this.onPick,
-    required this.onRemovePending,
-    required this.onToggleExisting,
+    this.existingImageUrls = const <String>[],
   });
 
-  /// URL foto yang sudah tersimpan pada dokumen produk.
+  final TextEditingController controller;
+  final bool isBusy;
   final List<String> existingImageUrls;
 
-  /// URL foto lama yang ditandai akan dibuang saat penyimpanan berhasil.
-  final Set<String> removedImageUrls;
+  List<String> get _parsedUrls => controller.text
+      .split(RegExp(r'[\n,]'))
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
 
-  /// Foto baru yang sudah divalidasi tetapi belum diunggah.
-  final List<PickedProductImage> pendingImages;
-
-  final bool isBusy;
-  final bool isUploading;
-  final int uploadedImageCount;
-  final int uploadTotal;
-  final double uploadProgress;
-
-  final VoidCallback onPick;
-  final void Function(int index) onRemovePending;
-  final void Function(String imageUrl) onToggleExisting;
+  void _removeUrl(int index) {
+    final urls = _parsedUrls;
+    if (index >= 0 && index < urls.length) {
+      urls.removeAt(index);
+      controller.text = urls.join(', ');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasAnyImage =
-        existingImageUrls.isNotEmpty || pendingImages.isNotEmpty;
+    final urls = _parsedUrls;
+    final hasImages = urls.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -66,66 +50,110 @@ class AdminProductImageField extends StatelessWidget {
           Text('Foto produk', style: theme.textTheme.titleSmall),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            hasAnyImage
-                ? 'Foto pertama dipakai sebagai foto utama di katalog. Foto baru '
-                      'diunggah saat produk disimpan; bila unggahan gagal, daftar '
-                      'foto lama tidak berubah.'
-                : 'Belum ada foto. Produk tetap dapat disimpan, tetapi kartu di '
-                      'katalog menampilkan bidang "Foto belum diisi".',
+            hasImages
+                ? 'Foto pertama otomatis dijadikan sampul utama di katalog. '
+                    'Gambar dimuat langsung dari link URL online.'
+                : 'Belum ada foto. Masukkan URL/link gambar online di bawah '
+                    'agar kartu produk menampilkan foto di katalog.',
             style: theme.textTheme.bodySmall,
           ),
-          if (hasAnyImage) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.md),
+          if (hasImages)
             Wrap(
               spacing: AppSpacing.md,
               runSpacing: AppSpacing.md,
               children: <Widget>[
-                for (final url in existingImageUrls)
+                for (var i = 0; i < urls.length; i++)
                   _Thumb(
-                    caption: removedImageUrls.contains(url)
-                        ? 'Akan dihapus saat disimpan'
-                        : 'Foto tersimpan',
-                    actionLabel: removedImageUrls.contains(url)
-                        ? 'Batalkan'
-                        : 'Buang',
-                    onAction: isBusy ? null : () => onToggleExisting(url),
-                    child: Opacity(
-                      opacity: removedImageUrls.contains(url) ? 0.4 : 1,
-                      child: ProductImage(
-                        imageUrl: url,
-                        semanticLabel: 'Foto produk tersimpan',
+                    caption: i == 0 ? 'Foto utama (Katalog)' : 'Foto ${i + 1}',
+                    actionLabel: 'Hapus',
+                    onAction: isBusy ? null : () => _removeUrl(i),
+                    child: Image.network(
+                      urls[i],
+                      fit: BoxFit.cover,
+                      semanticLabel: 'Pratinjau foto produk ${i + 1}',
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AppColors.canvas,
+                        alignment: Alignment.center,
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                Icons.broken_image_outlined,
+                                color: AppColors.textSecondary,
+                                size: 24,
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'URL gagal dimuat',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: AppColors.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                for (var index = 0; index < pendingImages.length; index++)
-                  _Thumb(
-                    caption: 'Foto baru (belum diunggah)',
-                    actionLabel: 'Batalkan',
-                    onAction: isBusy ? null : () => onRemovePending(index),
-                    child: Image.memory(
-                      pendingImages[index].bytes,
-                      fit: BoxFit.cover,
-                      semanticLabel: 'Pratinjau foto baru',
-                    ),
-                  ),
               ],
+            )
+          else
+            Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.canvas,
+                borderRadius: AppRadius.smAll,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(
+                    Icons.photo_outlined,
+                    color: AppColors.textSecondary,
+                    size: 36,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Belum ada URL gambar diinput',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
             ),
-          ],
-          if (isUploading) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
-            LinearProgressIndicator(value: uploadProgress),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              'Mengunggah foto ${uploadedImageCount + 1} dari $uploadTotal — '
-              '${(uploadProgress * 100).round()}%',
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
           const SizedBox(height: AppSpacing.md),
-          OutlinedButton.icon(
-            onPressed: isBusy ? null : onPick,
-            icon: const Icon(Icons.photo_library_outlined, size: 18),
-            label: Text(pendingImages.isEmpty ? 'Pilih foto' : 'Tambah foto'),
+          TextFormField(
+            controller: controller,
+            enabled: !isBusy,
+            keyboardType: TextInputType.url,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: 'URL / Link Foto Produk',
+              hintText: 'https://images.unsplash.com/...',
+              helperText:
+                  'Gunakan URL gambar online (misal Unsplash, Cloudinary). '
+                  'Pisahkan dengan koma atau baris baru untuk menambah lebih dari 1 foto.',
+              prefixIcon: const Icon(Icons.link, size: 20),
+              suffixIcon: hasImages
+                  ? IconButton(
+                      tooltip: 'Hapus semua URL',
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: isBusy ? null : () => controller.clear(),
+                    )
+                  : null,
+            ),
           ),
         ],
       ),
@@ -133,7 +161,7 @@ class AdminProductImageField extends StatelessWidget {
   }
 }
 
-/// Satu pratinjau foto beserta keterangan dan aksinya.
+/// Satu thumbnail pratinjau foto beserta keterangan dan tombol hapus.
 class _Thumb extends StatelessWidget {
   const _Thumb({
     required this.caption,
@@ -162,13 +190,19 @@ class _Thumb extends StatelessWidget {
           const SizedBox(height: AppSpacing.xxs),
           Text(
             caption,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall,
           ),
           SizedBox(
             height: AppSpacing.minTapTarget,
-            child: TextButton(onPressed: onAction, child: Text(actionLabel)),
+            child: TextButton(
+              onPressed: onAction,
+              child: Text(
+                actionLabel,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
           ),
         ],
       ),

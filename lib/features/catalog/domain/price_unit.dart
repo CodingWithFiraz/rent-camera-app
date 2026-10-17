@@ -11,6 +11,9 @@ enum PriceUnit {
   /// `per_session` — harga per sesi/pemakaian.
   perSession('per_session'),
 
+  /// `per_video` — harga per video.
+  perVideo('per_video'),
+
   /// Satuan belum ditetapkan pemilik (nilai kosong atau tidak dikenal).
   unspecified('');
 

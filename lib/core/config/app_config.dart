@@ -41,16 +41,14 @@ abstract final class AppConfig {
     'GOOGLE_IOS_CLIENT_ID',
   );
 
-  /// Nomor WhatsApp tujuan permintaan sewa.
+  /// Nomor WhatsApp tujuan permintaan sewa transaksi.
   ///
-  /// Format internasional tanpa `+`, spasi, atau tanda baca: kode negara
-  /// diikuti nomor, tanpa awalan `0` (langkah pengisian ada di `SETUP.md` §3).
-  /// Nomor final belum ditentukan pemilik, jadi **tidak ada default**: selama
-  /// `WHATSAPP_NUMBER` belum diisi, aplikasi menonaktifkan tombol checkout dan
-  /// menjelaskan bahwa nomor belum dikonfigurasi. Nilai ini sengaja hanya ada di
-  /// sini; nomor tidak boleh disebar ke widget lain.
+  /// Format internasional: 6285718073059 (085718073059).
+  static const String defaultWhatsAppNumber = '6285718073059';
+
   static const String whatsappNumber = String.fromEnvironment(
     'WHATSAPP_NUMBER',
+    defaultValue: defaultWhatsAppNumber,
   );
 
   static bool get isAdminAliasConfigured => adminEmail.trim().isNotEmpty;

@@ -74,6 +74,8 @@ class PriceDisplay {
         return 'hari';
       case PriceUnit.perSession:
         return 'sesi';
+      case PriceUnit.perVideo:
+        return 'video';
       case PriceUnit.unspecified:
         return null;
     }

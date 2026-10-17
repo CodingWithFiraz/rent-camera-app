@@ -43,6 +43,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _stockController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
 
   /// Document ID untuk produk baru, dipesan sekali per sesi form supaya foto
   /// diunggah ke folder `products/{productId}/**` yang benar.
@@ -68,6 +69,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     // Catatan harga & periode ikut berubah saat admin mengetik, sehingga pesan
     // "harga belum diisi"/"satuan belum dipilih" tidak menunggu tombol simpan.
     _priceController.addListener(_handlePriceChanged);
+    _imageUrlController.addListener(_handlePriceChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(adminProductFormControllerProvider.notifier).reset();
@@ -78,6 +80,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   @override
   void dispose() {
     _priceController.removeListener(_handlePriceChanged);
+    _imageUrlController.removeListener(_handlePriceChanged);
+    _imageUrlController.dispose();
     _nameController.dispose();
     _brandController.dispose();
     _priceController.dispose();
@@ -165,6 +169,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _priceUnit = product.priceUnit;
     _isActive = product.isActive;
     _existingImageUrls = product.imageUrls;
+    _imageUrlController.text = product.imageUrls.join(', ');
   }
 
   void _goToDashboard() {
@@ -197,6 +202,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       return;
     }
 
+    final enteredImageUrls = _imageUrlController.text
+        .split(RegExp(r'[\n,]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
     final draft = ProductDraft(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -205,22 +216,26 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       price: price,
       priceUnit: _priceUnit,
       stockQuantity: stock,
-      imageUrls: _existingImageUrls,
+      imageUrls: enteredImageUrls,
       isActive: _isActive,
     );
 
     final messenger = ScaffoldMessenger.of(context);
+    final savedProductId = widget.productId ?? _newProductId;
     final saved = await ref
         .read(adminProductFormControllerProvider.notifier)
         .save(
-          productId: widget.productId ?? _newProductId,
+          productId: savedProductId,
           isNew: !_isEditing,
           draft: draft,
-          existingImageUrls: _existingImageUrls,
+          existingImageUrls: enteredImageUrls,
         );
     if (!saved) {
       return;
     }
+
+    ref.invalidate(productByIdProvider(savedProductId));
+    ref.invalidate(activeProductsProvider);
 
     final successMessage = _isActive
         ? 'Produk berhasil disimpan dan tampil di katalog utama.'
@@ -235,9 +250,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   Widget _buildForm() {
     final theme = Theme.of(context);
     final formState = ref.watch(adminProductFormControllerProvider);
-    final formController = ref.read(
-      adminProductFormControllerProvider.notifier,
-    );
     final categoriesAsync = ref.watch(activeCategoriesProvider);
     final categories = categoriesAsync.value ?? const <Category>[];
     final price = ProductDraftValidation.tryParseInteger(_priceController.text);
@@ -348,17 +360,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
           AdminProductImageField(
-            existingImageUrls: _existingImageUrls,
-            removedImageUrls: formState.removedImageUrls.toSet(),
-            pendingImages: formState.pendingImages,
+            controller: _imageUrlController,
             isBusy: isBusy,
-            isUploading: formState.isUploading,
-            uploadedImageCount: formState.uploadedImageCount,
-            uploadTotal: formState.uploadTotal,
-            uploadProgress: formState.uploadProgress,
-            onPick: formController.pickImages,
-            onRemovePending: formController.removePendingImage,
-            onToggleExisting: formController.toggleExistingImageRemoval,
+            existingImageUrls: _existingImageUrls,
           ),
           const SizedBox(height: AppSpacing.xl),
           AppPrimaryButton(

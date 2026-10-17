@@ -53,3 +53,4 @@ scripts/node_modules/
 scripts/package-lock.json
 scripts/service-account*.json
 *.serviceAccount.json
+service-account.json

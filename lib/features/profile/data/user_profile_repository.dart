@@ -137,7 +137,7 @@ class UserProfileRepository {
     };
 
     final normalizedPhotoUrl = photoUrl?.trim();
-    if (normalizedPhotoUrl != null && normalizedPhotoUrl.isNotEmpty) {
+    if (normalizedPhotoUrl != null) {
       data[UserProfileFields.photoUrl] = normalizedPhotoUrl;
     }
 

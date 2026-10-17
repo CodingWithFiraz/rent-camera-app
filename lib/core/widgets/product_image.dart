@@ -37,25 +37,43 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uri = ExternalUrl.tryParse(imageUrl);
-    final content = uri == null
-        ? const _ImagePlaceholder(message: 'Foto belum diisi')
-        : Image.network(
-            uri.toString(),
-            fit: fit,
-            semanticLabel: semanticLabel,
-            loadingBuilder: (
-              BuildContext context,
-              Widget child,
-              ImageChunkEvent? progress,
-            ) => progress == null ? child : const AppLoading(),
-            errorBuilder:
-                (BuildContext context, Object error, StackTrace? stackTrace) =>
-                    const _ImagePlaceholder(
-                      message: 'Foto gagal dimuat',
-                      icon: Icons.broken_image_outlined,
-                    ),
-          );
+    final rawUrl = imageUrl?.trim() ?? '';
+    final isAsset = rawUrl.startsWith('assets/');
+    final uri = isAsset ? null : ExternalUrl.tryParse(rawUrl);
+
+    final Widget content;
+    if (isAsset) {
+      content = Image.asset(
+        rawUrl,
+        fit: fit,
+        semanticLabel: semanticLabel,
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) =>
+                const _ImagePlaceholder(
+                  message: 'Foto gagal dimuat',
+                  icon: Icons.broken_image_outlined,
+                ),
+      );
+    } else if (uri != null) {
+      content = Image.network(
+        uri.toString(),
+        fit: fit,
+        semanticLabel: semanticLabel,
+        loadingBuilder: (
+          BuildContext context,
+          Widget child,
+          ImageChunkEvent? progress,
+        ) => progress == null ? child : const AppLoading(),
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) =>
+                const _ImagePlaceholder(
+                  message: 'Foto gagal dimuat',
+                  icon: Icons.broken_image_outlined,
+                ),
+      );
+    } else {
+      content = const _ImagePlaceholder(message: 'Foto belum diisi');
+    }
 
     final Widget surface = DecoratedBox(
       decoration: const BoxDecoration(color: AppColors.canvas),

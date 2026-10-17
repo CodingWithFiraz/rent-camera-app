@@ -91,6 +91,7 @@ final cartCheckoutProvider =
       if (id.isEmpty) {
         return CartCheckoutValidation.empty;
       }
+      ref.watch(cartItemsProvider(id));
       final items = await ref.watch(cartItemsProvider(id).future);
       if (items.isEmpty) {
         return CartCheckoutValidation.empty;
@@ -138,15 +139,19 @@ class CartActions {
           quantity: quantity,
           availableStock: product.stockQuantity,
         );
+    _ref.invalidate(cartItemsProvider(uid));
+    _ref.invalidate(cartCheckoutProvider(uid));
   });
 
   /// Menghapus satu baris keranjang.
   Future<void> removeItem({required String uid, required String productId}) =>
-      _guard(
-        () => _ref
+      _guard(() async {
+        await _ref
             .read(cartRepositoryProvider)
-            .removeItem(uid: uid, productId: productId),
-      );
+            .removeItem(uid: uid, productId: productId);
+        _ref.invalidate(cartItemsProvider(uid));
+        _ref.invalidate(cartCheckoutProvider(uid));
+      });
 
   /// Menyalin harga dan satuan periode terbaru ke baris keranjang.
   ///

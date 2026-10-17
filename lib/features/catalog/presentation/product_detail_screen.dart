@@ -42,13 +42,45 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   /// Jumlah yang diminta pembeli; dibatasi stok produk di [Product].
   int _quantity = 1;
-
+  String? _selectedImageUrl;
   bool _isAddingToCart = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(productByIdProvider(widget.productId));
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(authSessionNotifierProvider).user?.uid ?? '';
+    // Periksa produk dari stream aktif realtime katalog agar data foto selalu sinkron
+    final activeProducts = ref.watch(activeProductsProvider(null)).value;
+    Product? liveProduct;
+    if (activeProducts != null) {
+      for (final p in activeProducts) {
+        if (p.id == widget.productId) {
+          liveProduct = p;
+          break;
+        }
+      }
+    }
+
     final productAsync = ref.watch(productByIdProvider(widget.productId));
+
+    // Jika liveProduct tersedia dari stream katalog, render langsung dengan data terkini
+    if (liveProduct != null) {
+      return AppScaffold(
+        title: 'Detail alat',
+        leading: BackButton(onPressed: _backToCatalog),
+        actions: const <Widget>[CatalogAppBarActions()],
+        body: _buildDetail(liveProduct, uid),
+      );
+    }
 
     return AppScaffold(
       title: 'Detail alat',
@@ -87,16 +119,47 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final maxQuantity = product.maxOrderableQuantity;
     final canAddToCart =
         product.isInStock && uid.isNotEmpty && !_isAddingToCart;
+    final activePhotoUrl = _selectedImageUrl ?? product.primaryImageUrl;
 
     return ListView(
       padding: AppSpacing.screen,
       children: <Widget>[
         ProductImage(
-          imageUrl: product.primaryImageUrl,
+          imageUrl: activePhotoUrl,
           aspectRatio: 4 / 3,
           borderRadius: AppRadius.lgAll,
           semanticLabel: 'Foto ${product.name}',
         ),
+        if (product.imageUrls.length > 1) ...<Widget>[
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            height: 64,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: product.imageUrls.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+              itemBuilder: (context, index) {
+                final url = product.imageUrls[index];
+                final isSelected = url == activePhotoUrl;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedImageUrl = url),
+                  child: Container(
+                    width: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: AppRadius.smAll,
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : AppColors.border,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: ProductImage(imageUrl: url),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.xl),
         Text(product.name, style: theme.textTheme.headlineSmall),
         const SizedBox(height: AppSpacing.sm),

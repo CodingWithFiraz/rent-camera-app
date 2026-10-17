@@ -132,6 +132,7 @@ class ProfileEditor extends Notifier<ProfileEditorState> {
     required String uid,
     required String displayName,
     required String phoneNumber,
+    String? photoUrl,
     String? previousPhotoUrl,
   }) async {
     if (state.isBusy) {
@@ -139,7 +140,9 @@ class ProfileEditor extends Notifier<ProfileEditorState> {
     }
     final picked = state.pickedImage;
     final contentType = picked?.contentType;
-    if (picked != null && (contentType == null || contentType.isEmpty)) {
+    if (photoUrl == null &&
+        picked != null &&
+        (contentType == null || contentType.isEmpty)) {
       state = ProfileEditorState(
         pickedImage: picked,
         errorMessage: 'Foto belum siap diunggah. Pilih ulang fotonya.',
@@ -151,7 +154,7 @@ class ProfileEditor extends Notifier<ProfileEditorState> {
 
     UploadedProfilePhoto? uploaded;
     try {
-      if (picked != null) {
+      if (photoUrl == null && picked != null) {
         uploaded = await _storage.upload(
           uid: uid,
           bytes: picked.bytes,
@@ -162,7 +165,7 @@ class ProfileEditor extends Notifier<ProfileEditorState> {
         uid: uid,
         displayName: displayName,
         phoneNumber: phoneNumber,
-        photoUrl: uploaded?.downloadUrl,
+        photoUrl: photoUrl ?? uploaded?.downloadUrl,
       );
     } catch (error) {
       // Unggahan yang batal dipakai dibersihkan, sedangkan dokumen profil tidak

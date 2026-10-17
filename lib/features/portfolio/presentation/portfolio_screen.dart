@@ -57,16 +57,15 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
         children: <Widget>[
           Text(
             'Halaman ini menampilkan kelompok jasa beserta rate card-nya dan '
-            'kartu kreator dengan tautan portofolio. Seluruh isinya berasal dari '
-            'data yang dikonfigurasi pemilik aplikasi.',
+            'kartu kreator dengan tautan portofolio.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.xl),
-          Text('Kelompok layanan', style: theme.textTheme.titleMedium),
+          Text('Layanan Kami', style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.md),
           const _ServiceRatesSection(),
           const SizedBox(height: AppSpacing.xl),
-          Text('Kreator', style: theme.textTheme.titleMedium),
+          Text('Kreator Kami', style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.md),
           _CreativesSection(
             openingCreativeId: _openingCreativeId,
@@ -190,7 +189,7 @@ class _ServiceRatesSection extends ConsumerWidget {
                 'ditampilkan.',
           )
         else ...<Widget>[
-          if (rates.length != _PortfolioScreenState.expectedServiceRateCount)
+          if (rates.length < _PortfolioScreenState.expectedServiceRateCount)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: CatalogSectionNotice(

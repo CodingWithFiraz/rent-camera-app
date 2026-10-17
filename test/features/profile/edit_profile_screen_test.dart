@@ -45,9 +45,13 @@ class _FakeProfileEditor extends ProfileEditor {
     required String uid,
     required String displayName,
     required String phoneNumber,
+    String? photoUrl,
     String? previousPhotoUrl,
   }) async {
-    saves.add('$uid|$displayName|$phoneNumber|${previousPhotoUrl ?? '-'}');
+    final photo = (photoUrl != null && photoUrl.isNotEmpty)
+        ? photoUrl
+        : (previousPhotoUrl ?? '-');
+    saves.add('$uid|$displayName|$phoneNumber|$photo');
     if (!saveSucceeds) {
       state = ProfileEditorState(errorMessage: failureMessage);
       return false;
@@ -206,7 +210,7 @@ void main() {
     expect(find.text('Simpan perubahan'), findsOneWidget);
   });
 
-  testWidgets('tombol pilih foto memanggil pemilih berkas', (
+  testWidgets('kolom URL foto profil dapat diisi dan disimpan', (
     WidgetTester tester,
   ) async {
     final editor = await _pumpEditProfile(
@@ -214,10 +218,16 @@ void main() {
       profile: const UserProfile(uid: 'uid-1', displayName: 'Nama Tersimpan'),
     );
 
-    expect(find.text('Pilih foto'), findsOneWidget);
-    await tester.tap(find.text('Pilih foto'));
+    expect(find.text('URL Foto Profil'), findsOneWidget);
+    await tester.enterText(
+      _fieldWithLabel('URL Foto Profil'),
+      'https://contoh.test/foto-online.jpg',
+    );
+    await tester.tap(find.text('Simpan perubahan'));
     await tester.pumpAndSettle();
 
-    expect(editor.pickCalls, 1);
+    expect(editor.saves, <String>[
+      'uid-1|Nama Tersimpan||https://contoh.test/foto-online.jpg',
+    ]);
   });
 }

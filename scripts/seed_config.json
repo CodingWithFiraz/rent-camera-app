@@ -125,16 +125,32 @@
   ],
   "serviceRates": [
     {
-      "id": "commercial_social_media_video",
-      "title": "Commercial / Social Media Video",
-      "description": "Produksi video komersial dan konten media sosial untuk branding dan promosi produk.",
-      "sortOrder": 1,
-      "isActive": true
+        "id": "commercial_portrait_photography",
+        "title": "Commercial & Portrait Photography",
+        "description": "Fotografi komersial, foto produk, katalog busana, dan foto profil profesional.",
+        "rateLabel": "Mulai dari",
+        "startingPrice": 300000,
+        "priceUnit": "per_session",
+        "deliverables": [
+          "10 Foto edit resolusi tinggi",
+          "Sesi foto 1 jam",
+          "Akses Google Drive selama 30 hari"
+        ],
+        "sortOrder": 1,
+        "isActive": true
     },
     {
       "id": "video_editing_post_production",
       "title": "Video Editing / Post-production",
       "description": "Penyuntingan dan pasca-produksi video untuk berbagai kebutuhan materi visual.",
+       "rateLabel": "Mulai dari",
+        "startingPrice": 100000,
+        "priceUnit": "per_video",
+        "deliverables": [
+          "cut to cut, color grading, audio , dan graphic",
+          "durasi video 1-3 menit",
+          "revisi 2 kali"
+        ],
       "sortOrder": 2,
       "isActive": true
     },
@@ -142,13 +158,29 @@
       "id": "event_project_documentation",
       "title": "Event & Project Documentation",
       "description": "Dokumentasi event, peluncuran proyek, seminar, konser, atau gathering.",
+       "rateLabel": "Mulai dari",
+        "startingPrice": 500000,
+        "priceUnit": "per_session",
+        "deliverables": [
+          "Foto & video dokumentasi",
+          "Durasi 3-5 jam dokumentasi",
+          "Akses Google Drive selama 30 hari"
+        ],
       "sortOrder": 3,
       "isActive": true
     },
     {
-      "id": "commercial_portrait_photography",
-      "title": "Commercial & Portrait Photography",
-      "description": "Fotografi komersial, foto produk, katalog busana, dan foto profil profesional.",
+      "id": "Drone Aerial Videography",
+      "title": "Drone Aerial Videography",
+      "description": "Pengambilan video dari atas menggunakan drone.",
+       "rateLabel": "Mulai dari",
+        "startingPrice": 300000,
+        "priceUnit": "per_session",
+        "deliverables": [
+          "Video aerial 1-3 menit",
+          "Sesi 2-3 jam pengambilan video",
+          "Akses Google Drive selama 30 hari"
+        ],
       "sortOrder": 4,
       "isActive": true
     }
@@ -156,17 +188,31 @@
   "creatives": [
     {
       "id": "kreator_1",
-      "name": "Nama kreator pertama (contoh)",
-      "roleTitle": "Videographer & Video Editor (data contoh)",
-      "specialties": [],
+      "name": "Firas Fadly A",
+      "roleTitle": "Social Media & Photo & Video Creator",
+      "specialties": [
+        "Video Editing",
+        "Photography",
+        "Videography",
+        "Social Media Content"
+      ],
+       "photoUrl": "https://scontent-cgk2-1.cdninstagram.com/v/t51.82787-19/789388627_18339254287285533_3243399250074852582_n.jpg?_nc_cat=106&ig_cache_key=GFMdDS8dPT1hdCdBAObcegVv3gItbmNDAQAB0j-ccb7-5&ccb=7-5&_nc_sid=669407&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=czqqxa4xFXwQ7kNvwGjGNsK&_nc_oc=Adono2EiAvdnnrA-sq5F1oKR4oeSj-IS9urXCmYGnHuda26liPk-hA2RxUPX_7j9t2o&_nc_zt=24&_nc_ht=scontent-cgk2-1.cdninstagram.com&_nc_gid=lIUTojaDlZXI-BBoYXKK2w&_nc_ss=7baaf&oh=00_AQN4mgiOdciyrfDY8x7h8jCPOns9kIkRf-CdLxa8cmu-KQ&oe=6AD8E438",
+      "portfolioUrl": "https://firasporto.framer.media/",
       "sortOrder": 1,
       "isActive": true
     },
     {
       "id": "kreator_2",
-      "name": "Nama kreator kedua (contoh)",
-      "roleTitle": "Photographer & Visual Content (data contoh)",
-      "specialties": [],
+      "name": "Ipan Ramadan",
+      "roleTitle": "Drone Pilot & Event Videographer",
+      "specialties": [
+        "Video Editing",
+        "Videography",
+        "Drone piloting",
+        "Event Documentation"
+      ],
+       "photoUrl": "https://scontent-cgk1-2.cdninstagram.com/v/t51.82787-19/529060680_18319192732234875_3110938824809545235_n.jpg?_nc_cat=108&ig_cache_key=GEjTiB97dGBvNRVBABN_vvJgRiwrbmNDAQAB0j-ccb7-5&ccb=7-5&_nc_sid=669407&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4xMDgwLkMzIn0%3D&_nc_ohc=rnFfgDTe4zgQ7kNvwFErvAH&_nc_oc=AdoQ9dvQjsouulcyMYaaIGOuOWvaT24t0EdiGQ1hGHDae2ysAkDckAV_gFmYWYR53OU&_nc_zt=24&_nc_ht=scontent-cgk1-2.cdninstagram.com&_nc_gid=4VVKW3cfJYupnNeOrZlDJg&_nc_ss=7baaf&oh=00_AQMZm2QlPcuDFPbDNHLKC_PCCEdkvcC_rowaLwLa1D_0sg&oe=6AD90C99",
+      "portfolioUrl": "https://drive.google.com/file/d/1z2U1OQ5ovM3WXwjtyqToetyQJXm2YlkH/view?usp=drivesdk",
       "sortOrder": 2,
       "isActive": true
     }

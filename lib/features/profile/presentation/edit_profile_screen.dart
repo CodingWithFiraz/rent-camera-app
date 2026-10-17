@@ -11,9 +11,7 @@ import '../../../core/widgets/app_form_banner.dart';
 import '../../../core/widgets/app_primary_button.dart';
 import '../../../core/widgets/app_scaffold.dart';
 import '../../../core/widgets/app_text_field.dart';
-import '../../../core/widgets/product_image.dart';
 import '../../auth/presentation/auth_providers.dart';
-import '../data/profile_image_picker.dart';
 import '../domain/user_profile.dart';
 import 'profile_editor.dart';
 import 'profile_providers.dart';
@@ -35,6 +33,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _photoUrlController = TextEditingController();
 
   /// `true` setelah kolom diisi dari data profil/Akun, supaya ketikan pengguna
   /// tidak tertimpa saat stream profil memperbarui halaman.
@@ -43,6 +42,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _photoUrlController.addListener(_handlePhotoUrlChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(profileEditorProvider.notifier).reset();
@@ -52,10 +52,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   void dispose() {
+    _photoUrlController.removeListener(_handlePhotoUrlChanged);
+    _photoUrlController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  void _handlePhotoUrlChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   /// Mengisi kolom sekali dari profil (`users/{uid}`) dan akun Firebase Auth.
@@ -66,18 +74,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     required TextEditingController nameController,
     required TextEditingController phoneController,
     required TextEditingController emailController,
+    required TextEditingController photoUrlController,
   }) {
     final profileName = profile?.displayName.trim() ?? '';
     nameController.text = profileName.isNotEmpty ? profileName : accountName;
     phoneController.text = profile?.phoneNumber.trim() ?? '';
     emailController.text = accountEmail;
+    photoUrlController.text = profile?.photoUrl.trim() ?? '';
   }
-
-  Future<void> _pickPhoto() =>
-      ref.read(profileEditorProvider.notifier).pickPhoto();
-
-  void _clearPickedPhoto() =>
-      ref.read(profileEditorProvider.notifier).clearPickedPhoto();
 
   /// Menyimpan perubahan; layar hanya ditutup bila penyimpanan berhasil.
   Future<void> _save() async {
@@ -95,6 +99,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           uid: uid,
           displayName: _nameController.text,
           phoneNumber: _phoneController.text,
+          photoUrl: _photoUrlController.text.trim(),
           previousPhotoUrl: previousPhotoUrl,
         );
     if (!mounted || !saved) {
@@ -135,6 +140,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         nameController: _nameController,
         phoneController: _phoneController,
         emailController: _emailController,
+        photoUrlController: _photoUrlController,
       );
     }
 
@@ -163,11 +169,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                     ),
                   _PhotoField(
-                    existingPhotoUrl: profile?.photoUrl.trim() ?? '',
-                    pickedImage: editorState.pickedImage,
+                    controller: _photoUrlController,
                     isBusy: editorState.isBusy,
-                    onPick: _pickPhoto,
-                    onClear: _clearPickedPhoto,
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   AppTextField(
@@ -234,42 +237,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 }
 
-/// Bagian foto pada form edit profil: pratinjau, pilih, dan batalkan.
-///
-/// Pratinjau memakai byte berkas yang dipilih (bukan path berkas) supaya juga
-/// tampil pada web. Selama belum disimpan, pilihan lokal ini hanya pratinjau:
-/// foto lama di database tidak disentuh (blueprint §10).
+/// Bagian foto pada form edit profil: pratinjau Image.network dan input link URL online.
 class _PhotoField extends StatelessWidget {
   const _PhotoField({
-    required this.existingPhotoUrl,
-    required this.pickedImage,
+    required this.controller,
     required this.isBusy,
-    required this.onPick,
-    required this.onClear,
   });
 
-  /// URL foto yang tersimpan pada `users/{uid}.photoUrl`.
-  final String existingPhotoUrl;
-
-  /// Foto baru yang sudah divalidasi tetapi belum diunggah.
-  final PickedProfileImage? pickedImage;
-
-  /// `true` selama pemilihan/penyimpanan berjalan.
+  final TextEditingController controller;
   final bool isBusy;
-
-  final VoidCallback onPick;
-  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final picked = pickedImage;
-    final hasExisting = existingPhotoUrl.trim().isNotEmpty;
-    final note = picked != null
-        ? 'Pratinjau foto baru. Simpan perubahan untuk mengunggahnya.'
-        : (hasExisting
-              ? 'Foto saat ini. Pilih foto baru bila ingin menggantinya.'
-              : 'Foto belum diisi. Pilih foto untuk dipakai pada profil.');
+    final photoUrl = controller.text.trim();
+    final hasPhoto = photoUrl.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -283,17 +265,37 @@ class _PhotoField extends StatelessWidget {
         children: <Widget>[
           ClipOval(
             child: SizedBox(
-              width: 96,
-              height: 96,
-              child: picked == null
-                  ? ProductImage(
-                      imageUrl: existingPhotoUrl,
-                      semanticLabel: 'Foto profil saat ini',
-                    )
-                  : Image.memory(
-                      picked.bytes,
+              width: 80,
+              height: 80,
+              child: hasPhoto
+                  ? Image.network(
+                      photoUrl,
                       fit: BoxFit.cover,
                       semanticLabel: 'Pratinjau foto profil baru',
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AppColors.canvas,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.textSecondary,
+                          size: 32,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.canvas,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.person_outline,
+                        color: AppColors.textSecondary,
+                        size: 40,
+                      ),
                     ),
             ),
           ),
@@ -304,23 +306,30 @@ class _PhotoField extends StatelessWidget {
               children: <Widget>[
                 Text('Foto profil', style: theme.textTheme.titleSmall),
                 const SizedBox(height: AppSpacing.xxs),
-                Text(note, style: theme.textTheme.bodySmall),
+                Text(
+                  hasPhoto
+                      ? 'Pratinjau foto profil dari tautan URL online.'
+                      : 'Masukkan tautan gambar online (URL) untuk profil Anda.',
+                  style: theme.textTheme.bodySmall,
+                ),
                 const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: <Widget>[
-                    OutlinedButton.icon(
-                      onPressed: isBusy ? null : onPick,
-                      icon: const Icon(Icons.photo_library_outlined, size: 18),
-                      label: Text(picked == null ? 'Pilih foto' : 'Ganti foto'),
-                    ),
-                    if (picked != null)
-                      TextButton(
-                        onPressed: isBusy ? null : onClear,
-                        child: const Text('Batalkan pilihan'),
-                      ),
-                  ],
+                TextFormField(
+                  controller: controller,
+                  enabled: !isBusy,
+                  keyboardType: TextInputType.url,
+                  decoration: InputDecoration(
+                    labelText: 'URL Foto Profil',
+                    hintText: 'https://...',
+                    helperText: 'Contoh: https://images.unsplash.com/...',
+                    prefixIcon: const Icon(Icons.link, size: 20),
+                    suffixIcon: hasPhoto
+                        ? IconButton(
+                            tooltip: 'Kosongkan URL',
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: isBusy ? null : () => controller.clear(),
+                          )
+                        : null,
+                  ),
                 ),
               ],
             ),

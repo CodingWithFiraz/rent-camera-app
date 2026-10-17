@@ -1,11 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/repository_error_mapper.dart';
 import '../../../core/utils/image_upload_validator.dart';
 import '../data/admin_product_image_picker.dart';
 import '../data/admin_product_repository.dart';
-import '../data/product_image_storage.dart';
 import '../domain/product_draft.dart';
 import 'admin_providers.dart';
 
@@ -94,8 +92,6 @@ class AdminProductFormController extends Notifier<AdminProductFormState> {
 
   AdminProductImagePicker get _picker =>
       ref.read(adminProductImagePickerProvider);
-
-  ProductImageStorage get _storage => ref.read(productImageStorageProvider);
 
   AdminProductRepository get _repository =>
       ref.read(adminProductRepositoryProvider);
@@ -233,22 +229,15 @@ class AdminProductFormController extends Notifier<AdminProductFormState> {
     required String productId,
     required bool isNew,
     required ProductDraft draft,
-    required List<String> existingImageUrls,
+    List<String> existingImageUrls = const <String>[],
   }) async {
     if (state.isBusy) {
       return false;
     }
 
-    final pending = state.pendingImages;
-    final removed = state.removedImageUrls.toSet();
-    final keptExisting = existingImageUrls
-        .where((String url) => !removed.contains(url))
-        .toList(growable: false);
-    final uploaded = <UploadedProductImage>[];
-
     state = state.copyWith(
       isSaving: true,
-      uploadTotal: pending.length,
+      uploadTotal: 0,
       uploadedImageCount: 0,
       uploadProgress: 0,
       clearError: true,
@@ -256,46 +245,18 @@ class AdminProductFormController extends Notifier<AdminProductFormState> {
     );
 
     try {
-      for (var index = 0; index < pending.length; index++) {
-        final image = pending[index];
-        final contentType = image.contentType;
-        if (contentType == null || contentType.isEmpty) {
-          throw const AppException(
-            'Foto belum siap diunggah. Pilih ulang fotonya.',
-          );
-        }
-        uploaded.add(
-          await _storage.upload(
-            productId: productId,
-            bytes: image.bytes,
-            contentType: contentType,
-            onProgress: (double progress) =>
-                _reportProgress(index: index, progress: progress),
-          ),
-        );
-      }
-
-      final draftToSave = draft.copyWith(
-        imageUrls: <String>[
-          ...keptExisting,
-          ...uploaded.map((UploadedProductImage item) => item.downloadUrl),
-        ],
-      );
       if (isNew) {
         await _repository.createProduct(
           productId: productId,
-          draft: draftToSave,
+          draft: draft,
         );
       } else {
         await _repository.updateProduct(
           productId: productId,
-          draft: draftToSave,
+          draft: draft,
         );
       }
     } catch (error) {
-      for (final item in uploaded) {
-        await _storage.deletePath(item.storagePath);
-      }
       state = state.copyWith(
         isSaving: false,
         uploadTotal: 0,
@@ -306,23 +267,9 @@ class AdminProductFormController extends Notifier<AdminProductFormState> {
       return false;
     }
 
-    for (final url in removed) {
-      await _storage.deleteByUrl(url);
-    }
-
     state = const AdminProductFormState(
       noticeMessage: 'Produk berhasil disimpan.',
     );
     return true;
-  }
-
-  void _reportProgress({required int index, required double progress}) {
-    if (!state.isSaving) {
-      return;
-    }
-    state = state.copyWith(
-      uploadedImageCount: index,
-      uploadProgress: progress.clamp(0.0, 1.0).toDouble(),
-    );
   }
 }

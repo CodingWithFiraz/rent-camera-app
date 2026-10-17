@@ -337,19 +337,42 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
     return _runAction(
       productId: line.productId,
-      action: (String uid) => ref
-          .read(cartActionsProvider)
-          .setQuantity(uid: uid, productId: line.productId, quantity: quantity),
+      action: (String uid) async {
+        await ref
+            .read(cartActionsProvider)
+            .setQuantity(
+              uid: uid,
+              productId: line.productId,
+              quantity: quantity,
+            );
+        ref.invalidate(cartItemsProvider(uid));
+        ref.invalidate(cartCheckoutProvider(uid));
+      },
     );
   }
 
   /// Menghapus satu baris dari keranjang pemilik sesi.
-  Future<void> _remove(CartCheckoutLine line) => _runAction(
-    productId: line.productId,
-    action: (String uid) => ref
-        .read(cartActionsProvider)
-        .removeItem(uid: uid, productId: line.productId),
-  );
+  Future<void> _remove(CartCheckoutLine line) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await _runAction(
+      productId: line.productId,
+      action: (String uid) async {
+        await ref
+            .read(cartActionsProvider)
+            .removeItem(uid: uid, productId: line.productId);
+        ref.invalidate(cartItemsProvider(uid));
+        ref.invalidate(cartCheckoutProvider(uid));
+      },
+    );
+    if (mounted && _actionError == null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${line.name} dihapus dari keranjang.'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   /// Menyalin harga terbaru dokumen produk ke baris keranjang.
   Future<void> _refreshStoredPrice(CartCheckoutLine line) => _runAction(
