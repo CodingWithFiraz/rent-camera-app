@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../domain/catalog_filter.dart';
 import '../../domain/category.dart';
-import '../category_icons.dart';
 
-/// Baris filter katalog: kategori, brand, dan tombol hapus filter.
-///
-/// Pilihan brand berasal dari [brands] yang disusun provider berdasarkan
-/// kategori terpilih, jadi daftar brand selalu mengikuti kategori. Kombinasi
-/// pencarian + kategori + brand tetap dipegang satu provider
-/// (`catalogFilterProvider`); widget ini hanya mengirim pilihan pengguna.
 class CatalogFilterBar extends StatelessWidget {
+  final List<Category> categories;
+  final List<String> brands;
+  final dynamic filter;
+  final ValueChanged<String?> onSelectCategory;
+  final ValueChanged<String?> onSelectBrand;
+  final VoidCallback onReset;
+
   const CatalogFilterBar({
     super.key,
     required this.categories,
@@ -23,135 +21,181 @@ class CatalogFilterBar extends StatelessWidget {
     required this.onReset,
   });
 
-  /// Kategori aktif dari Firestore; kosong berarti belum dapat dimuat.
-  final List<Category> categories;
-
-  /// Brand unik pada kategori terpilih; kosong berarti tidak ada pilihan brand.
-  final List<String> brands;
-
-  final CatalogFilter filter;
-
-  /// `null` berarti semua kategori.
-  final ValueChanged<String?> onSelectCategory;
-
-  /// `null` berarti semua brand.
-  final ValueChanged<String?> onSelectBrand;
-
-  final VoidCallback onReset;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selectedCategoryCode = _getSelectedCategoryCode(filter);
+    final selectedBrand = _getSelectedBrand(filter);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        if (categories.isNotEmpty) ...<Widget>[
-          Text('Kategori', style: theme.textTheme.labelMedium),
-          const SizedBox(height: AppSpacing.sm),
-          _ChipRow(
-            children: <Widget>[
-              _CatalogChoiceChip(
-                label: 'Semua',
-                icon: Icons.grid_view_outlined,
-                selected: !filter.hasCategory,
-                onTap: () => onSelectCategory(null),
-              ),
-              for (final category in categories)
-                _CatalogChoiceChip(
-                  label: category.name,
-                  icon: CategoryIcons.forKey(category.resolvedIconKey),
-                  selected: filter.categoryId == category.id,
-                  onTap: () => onSelectCategory(category.id),
-                ),
-            ],
+      children: [
+        // --- SECTION KATEGORI ---
+        Text(
+          'Kategori',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: Colors.grey.shade700,
           ),
-        ],
-        if (brands.isNotEmpty) ...<Widget>[
-          const SizedBox(height: AppSpacing.md),
-          Text('Brand', style: theme.textTheme.labelMedium),
-          const SizedBox(height: AppSpacing.sm),
-          _ChipRow(
-            children: <Widget>[
-              _CatalogChoiceChip(
-                label: 'Semua brand',
-                selected: !filter.hasBrand,
-                onTap: () => onSelectBrand(null),
-              ),
-              for (final brand in brands)
-                _CatalogChoiceChip(
-                  label: brand,
-                  selected: filter.brand?.toLowerCase() == brand.toLowerCase(),
-                  onTap: () => onSelectBrand(brand),
-                ),
-            ],
-          ),
-        ],
-        if (filter.isFiltering) ...<Widget>[
-          const SizedBox(height: AppSpacing.xs),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: onReset,
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-              label: const Text('Hapus filter'),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+
+        // Wrap agar tombol kategori otomatis turun ke baris baru saat di layar HP
+        Wrap(
+          spacing: 8.0,
+          runSpacing: 8.0,
+          children: [
+            // Chip 'Semua' Kategori
+            FilterChip(
+              avatar: const Icon(Icons.grid_view_rounded, size: 18),
+              label: const Text('Semua'),
+              selected: selectedCategoryCode == null || selectedCategoryCode.isEmpty,
+              onSelected: (_) => onSelectCategory(null),
             ),
+            // Chip Kategori Dinamis
+            for (final category in categories)
+              Builder(
+                builder: (context) {
+                  final catCode = _getCategoryCode(category);
+                  final catName = _getCategoryName(category);
+
+                  return FilterChip(
+                    avatar: _getCategoryIcon(catCode),
+                    label: Text(catName),
+                    selected: selectedCategoryCode == catCode,
+                    onSelected: (_) => onSelectCategory(catCode),
+                  );
+                },
+              ),
+          ],
+        ),
+
+        const SizedBox(height: AppSpacing.md),
+
+        // --- SECTION BRAND ---
+        if (brands.isNotEmpty) ...[
+          Text(
+            'Brand',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: [
+              // Chip 'Semua brand'
+              FilterChip(
+                label: const Text('Semua brand'),
+                selected: selectedBrand == null || selectedBrand.isEmpty,
+                onSelected: (_) => onSelectBrand(null),
+              ),
+              // Chip Brand Dinamis
+              for (final brand in brands)
+                FilterChip(
+                  label: Text(brand),
+                  selected: selectedBrand == brand,
+                  onSelected: (_) => onSelectBrand(brand),
+                ),
+            ],
           ),
         ],
       ],
     );
   }
-}
 
-/// Deretan chip yang dapat digulir mendatar agar aman pada layar sempit.
-class _ChipRow extends StatelessWidget {
-  const _ChipRow({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: <Widget>[
-          for (var index = 0; index < children.length; index++) ...<Widget>[
-            if (index > 0) const SizedBox(width: AppSpacing.sm),
-            children[index],
-          ],
-        ],
-      ),
-    );
+  // Safe getter untuk kategori terpilih
+  String? _getSelectedCategoryCode(dynamic filter) {
+    if (filter == null) return null;
+    try {
+      final val = filter.categoryCode;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = filter.category;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = filter.selectedCategoryCode;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = filter.selectedCategory;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    return null;
   }
-}
 
-/// Chip pilihan tunggal dengan gaya token aplikasi.
-class _CatalogChoiceChip extends StatelessWidget {
-  const _CatalogChoiceChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.icon,
-  });
+  // Safe getter untuk brand terpilih
+  String? _getSelectedBrand(dynamic filter) {
+    if (filter == null) return null;
+    try {
+      final val = filter.brand;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = filter.selectedBrand;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    return null;
+  }
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final IconData? icon;
+  // Safe getter untuk kode/ID dari model Category
+  String _getCategoryCode(dynamic category) {
+    if (category == null) return '';
+    try {
+      final val = category.code;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = category.id;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = category.slug;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    return category.toString();
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final iconData = icon;
-    return ChoiceChip(
-      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-      selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onTap(),
-      avatar: iconData == null ? null : Icon(iconData, size: 18),
-      labelStyle: theme.textTheme.bodyMedium,
-      visualDensity: VisualDensity.compact,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
-    );
+  // Safe getter untuk nama dari model Category
+  String _getCategoryName(dynamic category) {
+    if (category == null) return '';
+    try {
+      final val = category.name;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    try {
+      final val = category.title;
+      if (val != null) return val.toString();
+    } catch (_) {}
+    return category.toString();
+  }
+
+  // Helper Icon Kategori
+  Widget? _getCategoryIcon(String code) {
+    switch (code.toLowerCase()) {
+      case 'kamera':
+      case 'camera':
+        return const Icon(Icons.camera_alt_outlined, size: 18);
+      case 'lensa':
+      case 'lens':
+        return const Icon(Icons.camera_outlined, size: 18);
+      case 'lighting':
+        return const Icon(Icons.wb_sunny_outlined, size: 18);
+      case 'drone':
+        return const Icon(Icons.flight_outlined, size: 18);
+      case 'mic':
+      case 'audio':
+        return const Icon(Icons.mic_none_outlined, size: 18);
+      case 'tripod':
+        return const Icon(Icons.videocam_outlined, size: 18);
+      case 'sd_card':
+      case 'memory':
+        return const Icon(Icons.sd_card_outlined, size: 18);
+      default:
+        return null;
+    }
   }
 }
