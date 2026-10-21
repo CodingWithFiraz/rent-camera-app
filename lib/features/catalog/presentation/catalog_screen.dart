@@ -228,7 +228,7 @@ class CatalogFaqSection extends StatelessWidget {
             SizedBox(height: 12),
             ExpansionTile(
               title: Text(
-                'Bagaimana cara menyewa alat?',
+                'Bagaimana cara menyewa kamera?',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -353,7 +353,7 @@ class CatalogFaqSection extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text(
-                    'Penyewa wajib memberikan konfirmasi pengembalian. Jika unit tidak dikembalikan tanpa kejelasan, pihak kami akan menindaklanjuti secara tegas sesuai hukum/sanksi yang berlaku menggunakan data KTP/identitas yang sudah tersimpan.',
+                    'Penyewa wajib memberikan konfirmasi pengembalian, Jika unit tidak dikembalikan tanpa kejelasan, pihak kami akan menindaklanjuti secara tegas sesuai hukum/sanksi yang berlaku menggunakan data KTP/identitas yang sudah tersimpan.',
                     style: TextStyle(fontSize: 13, color: Colors.black87),
                   ),
                 ),
