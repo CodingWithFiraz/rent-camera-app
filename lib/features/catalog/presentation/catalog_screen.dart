@@ -228,7 +228,7 @@ class CatalogFaqSection extends StatelessWidget {
             SizedBox(height: 12),
             ExpansionTile(
               title: Text(
-                'Bagaimana cara menyewa kamera?',
+                'Bagaimana cara menyewa alat?',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -259,6 +259,101 @@ class CatalogFaqSection extends StatelessWidget {
                   padding: EdgeInsets.all(8.0),
                   child: Text(
                     'Biasanya memerlukan kartu identitas (KTP/KTM) yang masih berlaku sebagai jaminan pelajar maupun umum.',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            ExpansionTile(
+              title: Text(
+                'Apakah ada paket/promo durasi sewa khusus?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Tentu saja! Kami memiliki paket hemat: Sewa 3 hari cukup bayar 2 hari saja.',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            ExpansionTile(
+              title: Text(
+                'Bagaimana hitungan durasi sewa dan denda keterlambatan?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Penyewaan dihitung per unit dengan durasi 24 jam. Kami memberikan toleransi keterlambatan pengembalian selama 1 jam. Jika melebihi batas toleransi, dikenakan denda Rp10.000 per jam (berlaku kelipatan).',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            ExpansionTile(
+              title: Text(
+                'Bagaimana ketentuan pengembalian DP (Down Payment)?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Uang DP 50% dapat dikembalikan (refund) jika pembatalan dilakukan paling lambat H-1 sebelum tanggal sewa. Pembatalan pada Hari H tidak dapat dikembalikan (hangus).',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            ExpansionTile(
+              title: Text(
+                'Bagaimana jika tidak memiliki KTP?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Jika belum/tidak memiliki KTP (misalnya pelajar/siswa), Anda wajib membawa dan menyerahkan Kartu Pelajar aktif sebagai identitas jaminan.',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            ExpansionTile(
+              title: Text(
+                'Bagaimana jika tidak ada kejelasan pengembalian unit?',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: charcoalText,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Penyewa wajib memberikan konfirmasi pengembalian. Jika unit tidak dikembalikan tanpa kejelasan, pihak kami akan menindaklanjuti secara tegas sesuai hukum/sanksi yang berlaku menggunakan data KTP/identitas yang sudah tersimpan.',
                     style: TextStyle(fontSize: 13, color: Colors.black87),
                   ),
                 ),
