@@ -124,39 +124,55 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     return ListView(
       padding: AppSpacing.screen,
       children: <Widget>[
-        ProductImage(
-          imageUrl: activePhotoUrl,
-          aspectRatio: 4 / 3,
-          borderRadius: AppRadius.lgAll,
-          semanticLabel: 'Foto ${product.name}',
+        // Batasi ukuran gambar agar tidak membesar tanpa batas di layar desktop/fullscreen
+        Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 400),
+            child: ProductImage(
+              imageUrl: activePhotoUrl,
+              aspectRatio: 4 / 3,
+              borderRadius: AppRadius.lgAll,
+              semanticLabel: 'Foto ${product.name}',
+            ),
+          ),
         ),
         if (product.imageUrls.length > 1) ...<Widget>[
           const SizedBox(height: AppSpacing.sm),
-          SizedBox(
-            height: 64,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: product.imageUrls.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-              itemBuilder: (context, index) {
-                final url = product.imageUrls[index];
-                final isSelected = url == activePhotoUrl;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedImageUrl = url),
-                  child: Container(
-                    width: 64,
-                    decoration: BoxDecoration(
-                      borderRadius: AppRadius.smAll,
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
-                        width: isSelected ? 2 : 1,
+          Align(
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: SizedBox(
+                height: 64,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: product.imageUrls.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(width: AppSpacing.sm),
+                  itemBuilder: (context, index) {
+                    final url = product.imageUrls[index];
+                    final isSelected = url == activePhotoUrl;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedImageUrl = url),
+                      child: Container(
+                        width: 64,
+                        decoration: BoxDecoration(
+                          borderRadius: AppRadius.smAll,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: ProductImage(imageUrl: url),
                       ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: ProductImage(imageUrl: url),
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ],
